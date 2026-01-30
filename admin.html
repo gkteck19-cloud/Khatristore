@@ -4,36 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Khatri Admin - माँ भगवती इलेक्ट्रिकल्स</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-gray-100 pb-20">
+<body class="bg-gray-100 pb-20 p-4">
 
-    <div class="max-w-4xl mx-auto p-4">
-        <h1 class="text-2xl font-black mb-6 border-b pb-2 flex justify-between items-center">
-            <span>📦 एडमिन पैनल</span>
-            <span class="text-xs bg-slate-800 text-white px-3 py-1 rounded-full italic">Khatri Store</span>
-        </h1>
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-black mb-6 bg-slate-900 text-white p-4 rounded-2xl shadow-lg">📦 एडमिन ऐप</h1>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border-t-4 border-orange-500">
-            <h2 class="font-bold text-lg mb-4 text-orange-600">नया सामान दुकान में जोड़ें</h2>
-            <div class="grid gap-3">
-                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border p-2 rounded-lg text-sm">
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="number" id="new-price" placeholder="कीमत (₹)" class="border p-2 rounded-lg text-sm">
-                    <input type="number" id="new-stock" placeholder="स्टॉक मात्रा" class="border p-2 rounded-lg text-sm">
+            <h2 class="font-bold text-lg mb-4 text-orange-600">नया सामान जोड़ें</h2>
+            <div class="grid gap-4">
+                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border p-3 rounded-xl text-sm">
+                
+                <div class="border-2 border-dashed border-gray-300 p-4 rounded-xl text-center">
+                    <input type="file" id="image-input" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('image-input').click()" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold">
+                        📷 फोटो चुनें या खींचें
+                    </button>
+                    <p id="upload-status" class="text-[10px] text-gray-500 mt-2">कोई फोटो नहीं चुनी गई</p>
                 </div>
-                <input type="text" id="new-image" placeholder="फोटो लिंक (URL)" class="w-full border p-2 rounded-lg text-sm">
-                <button onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">Add Product</button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="new-price" placeholder="कीमत (₹)" class="border p-3 rounded-xl text-sm">
+                    <input type="number" id="new-stock" placeholder="स्टॉक" class="border p-3 rounded-xl text-sm">
+                </div>
+                
+                <button id="add-btn" onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">
+                    दुकान में अपलोड करें
+                </button>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm mb-8">
-            <h2 class="font-bold text-lg mb-4 text-slate-800">स्टॉक और कीमत बदलें</h2>
-            <div id="admin-product-list" class="space-y-4">
-                <p class="animate-pulse text-gray-400 text-center">लोड हो रहा है...</p>
+        <div id="admin-product-list" class="space-y-4">
+            <p class="text-center text-gray-400">सामान लोड हो रहा है...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.appspot.com", // यहाँ अपना स्टोरेज बकेट चेक करें
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let uploadedImageUrl = "";
+
+        // --- 1. फोटो अपलोड करने का फंक्शन ---
+        document.getElementById('image-input').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('upload-status');
+            status.innerText = "अपलोड हो रहा है... कृपया रुकें";
+            status.className = "text-[10px] text-orange-500 mt-2 animate-pulse";
+
+            try {
+                const storageRef = ref(storage, 'products/' + Date.now() + "_" + file.name);
+                await uploadBytes(storageRef, file);
+                uploadedImageUrl = await getDownloadURL(storageRef);
+                
+                status.innerText = "✅ फोटो तैयार है!";
+                status.className = "text-[10px] text-green-600 mt-2 font-bold";
+            } catch (error) {
+                alert("फोटो अपलोड फेल: " + error.message);
+                status.innerText = "❌ एरर आई";
+            }
+        };
+
+        // --- 2. नया प्रोडक्ट सेव करना ---
+        window.addNewProduct = async () => {
+            const name = document.getElementById('new-name').value;
+            const price = Number(document.getElementById('new-price').value);
+            const stock = Number(document.getElementById('new-stock').value);
+
+            if (!name || !price || !uploadedImageUrl) {
+                return alert("कृपया नाम, कीमत और फोटो तीनों भरें!");
+            }
+
+            const btn = document.getElementById('add-btn');
+            btn.innerText = "सेव हो रहा है...";
+            btn.disabled = true;
+
+            try {
+                await addDoc(collection(db, "products"), {
+                    name, price, stock, image: uploadedImageUrl, createdAt: serverTimestamp()
+                });
+                alert("सामान दुकान में जुड़ गया है!");
+                location.reload();
+            } catch (e) {
+                alert(e.message);
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
             </div>
         </div>
 
