@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khatri Admin - स्टॉक मैनेजमेंट</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-black mb-6 border-b pb-2">📦 एडमिन पैनल (Khatri Store)</h1>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm mb-8">
+            <h2 class="font-bold text-lg mb-4 text-orange-600">स्टॉक और कीमत बदलें</h2>
+            <div id="admin-product-list" class="space-y-4">
+                <p class="animate-pulse text-gray-400">सामान लोड हो रहा है...</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm">
+            <h2 class="font-bold text-lg mb-4 text-blue-600">नए ऑर्डर्स</h2>
+            <div id="admin-order-list" class="space-y-4 text-sm">
+                <p class="text-gray-400">ऑर्डर्स लोड हो रहे हैं...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.firebasestorage.app",
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- 1. स्टॉक अपडेट करने का फंक्शन ---
+        async function loadAdminData() {
+            // प्रोडक्ट्स लोड करें
+            const pSnapshot = await getDocs(collection(db, "products"));
+            let pHtml = "";
+            pSnapshot.forEach((pDoc) => {
+                const p = pDoc.data();
+                pHtml += `
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-3 border rounded-xl gap-2">
+                        <span class="font-bold text-sm w-40">${p.name}</span>
+                        <div class="flex gap-2">
+                            <input type="number" id="price-${pDoc.id}" value="${p.price}" class="w-20 border p-1 rounded text-sm" placeholder="Price">
+                            <input type="number" id="stock-${pDoc.id}" value="${p.stock}" class="w-16 border p-1 rounded text-sm" placeholder="Stock">
+                            <button onclick="updateProduct('${pDoc.id}')" class="bg-slate-900 text-white px-3 py-1 rounded text-xs">Save</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('admin-product-list').innerHTML = pHtml;
+
+            // ऑर्डर्स लोड करें
+            const oSnapshot = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")));
+            let oHtml = "";
+            oSnapshot.forEach((oDoc) => {
+                const o = oDoc.data();
+                oHtml += `
+                    <div class="p-3 bg-gray-50 rounded-xl border-l-4 border-blue-500">
+                        <p><b>ग्राहक:</b> ${o.phone}</p>
+                        <p><b>सामान:</b> ${o.items.map(i => i.name).join(', ')}</p>
+                        <p class="text-blue-700 font-bold">कुल: ₹${o.total}</p>
+                        <p class="text-[10px] text-gray-400">${o.createdAt?.toDate().toLocaleString() || ''}</p>
+                    </div>
+                `;
+            });
+            document.getElementById('admin-order-list').innerHTML = oHtml || "कोई आर्डर नहीं है।";
+        }
+
+        // --- 2. डेटा अपडेट करना ---
+        window.updateProduct = async (id) => {
+            const newPrice = Number(document.getElementById(`price-${id}`).value);
+            const newStock = Number(document.getElementById(`stock-${id}`).value);
+            
+            try {
+                await updateDoc(doc(db, "products", id), {
+                    price: newPrice,
+                    stock: newStock
+                });
+                alert("अपडेट सफल!");
+            } catch (e) { alert("Error: " + e.message); }
+        };
+
+        loadAdminData();
+    </script>
+</body>
+</html>
