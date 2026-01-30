@@ -6,56 +6,91 @@
     <title>KHATRI ADMIN - प्रो कंट्रोल</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .active-tab { background-color: #f97316 !important; color: white !important; }
+        .new-order-card { animation: blink 1.5s infinite; border: 2px solid #f97316 !important; }
+        @keyframes blink { 0%, 100% { border-color: #f97316; } 50% { border-color: transparent; } }
+        @media print { body * { visibility: hidden; } #bill-template, #bill-template * { visibility: visible; } #bill-template { position: absolute; left: 0; top: 0; width: 100%; } }
+    </style>
 </head>
 <body class="bg-slate-50 pb-20 p-4 font-sans text-slate-900">
 
     <div class="max-w-2xl mx-auto">
         <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl">
             <h1 class="text-xl font-black italic text-orange-400 uppercase">Khatri Admin</h1>
-            <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
+            <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full active:scale-90 transition"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
         </header>
 
         <div class="bg-white p-6 rounded-[30px] shadow-sm mb-6 border-l-8 border-orange-500">
-            <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
-                <i data-lucide="megaphone" class="text-orange-500"></i> ऑफर बैनर सेट करें
-            </h2>
-            <div class="space-y-4">
-                <textarea id="offer-text" placeholder="अपना ऑफर यहाँ लिखें (जैसे: दिवाली सेल! सभी पंखों पर 20% छूट)" class="w-full border-2 border-slate-50 p-4 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500 h-20"></textarea>
-                
-                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl">
-                    <span class="text-sm font-bold text-slate-600">ऑफर दिखाना चाहते हैं?</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="offer-toggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                    </label>
-                </div>
-                
-                <button onclick="saveOffer()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition">ऑफर अपडेट करें</button>
+            <h2 class="font-bold text-sm mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-orange-500 w-4 h-4"></i> ऑफर बैनर सेट करें</h2>
+            <textarea id="offer-text" placeholder="अपना ऑफर यहाँ लिखें..." class="w-full border-2 border-slate-50 p-4 rounded-2xl text-sm bg-slate-50 outline-none h-16 mb-4"></textarea>
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-xs font-bold text-slate-500 uppercase">ऑफर दिखाना चाहते हैं?</span>
+                <input type="checkbox" id="offer-toggle" class="w-5 h-5 accent-orange-500">
             </div>
+            <button onclick="saveOffer()" class="w-full bg-slate-900 text-white py-3 rounded-2xl font-black uppercase text-xs tracking-widest">अपडेट करें</button>
         </div>
 
         <div class="flex bg-white p-2 rounded-2xl shadow-sm mb-6 border gap-2">
-            <button onclick="switchTab('new')" id="tab-new" class="bg-orange-500 text-white flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all">नए ऑर्डर्स</button>
-            <button onclick="switchTab('stock')" id="tab-stock" class="bg-slate-50 text-slate-400 flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all">स्टॉक जोड़ें</button>
+            <button onclick="switchTab('new')" id="tab-new" class="active-tab flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1"><i data-lucide="bell" class="w-3 h-3"></i> नए आर्डर</button>
+            <button onclick="switchTab('stock')" id="tab-stock" class="bg-slate-50 text-slate-400 flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1"><i data-lucide="package" class="w-3 h-3"></i> स्टॉक</button>
+            <button onclick="switchTab('cats')" id="tab-cats" class="bg-slate-50 text-slate-400 flex-1 py-3 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1"><i data-lucide="layers" class="w-3 h-3"></i> कैटेगरी</button>
         </div>
 
         <div id="sec-new" class="tab-content space-y-4">
-            <div id="order-list" class="space-y-4"></div>
+            <div id="order-list" class="space-y-4 text-sm italic">लोड हो रहा है...</div>
         </div>
 
-        <div id="sec-stock" class="tab-content hidden space-y-4">
+        <div id="sec-stock" class="tab-content hidden space-y-6">
             <div class="bg-white p-6 rounded-[30px] border shadow-sm">
-                <h2 class="font-bold mb-4">नया सामान जोड़ें</h2>
-                <input type="text" id="p-name" placeholder="नाम" class="w-full border p-3 rounded-xl mb-3">
-                <input type="number" id="p-price" placeholder="रेट ₹" class="w-full border p-3 rounded-xl mb-6">
-                <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">सेव करें</button>
+                <h2 class="font-bold text-xs mb-4 uppercase">नया सामान जोड़ें</h2>
+                <div class="grid gap-3">
+                    <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-2 rounded-2xl bg-slate-50 h-32 relative cursor-pointer" onclick="document.getElementById('img-input').click()">
+                        <input type="file" id="img-input" accept="image/*" class="hidden" onchange="previewImg(this)">
+                        <img id="preview" class="hidden absolute inset-0 w-full h-full object-contain p-2 rounded-2xl">
+                        <p id="placeholder" class="text-[10px] text-slate-400">फोटो चुनें</p>
+                    </div>
+                    <input type="text" id="p-name" placeholder="सामान का नाम" class="w-full bg-slate-50 p-3 rounded-xl text-xs outline-none">
+                    <select id="p-cat-select" class="w-full bg-slate-50 p-3 rounded-xl text-xs outline-none"></select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="p-price" placeholder="रेट ₹" class="bg-slate-50 p-3 rounded-xl text-xs">
+                        <input type="number" id="p-stock" placeholder="स्टॉक" class="bg-slate-50 p-3 rounded-xl text-xs">
+                    </div>
+                    <button onclick="saveProduct()" id="save-btn" class="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase tracking-widest">सेव करें</button>
+                </div>
+            </div>
+            <div id="stock-list" class="space-y-3"></div>
+        </div>
+
+        <div id="sec-cats" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-[30px] border shadow-sm">
+                <h2 class="font-bold text-xs mb-4 uppercase">कैटेगरी मैनेजर</h2>
+                <div class="flex gap-2">
+                    <input type="text" id="new-cat-input" placeholder="जैसे: कूलर" class="flex-1 bg-slate-50 p-3 rounded-xl text-xs outline-none">
+                    <button onclick="addCat()" class="bg-slate-900 text-white px-6 rounded-xl font-bold">+</button>
+                </div>
+                <div id="cat-list-display" class="flex flex-wrap gap-2 mt-4"></div>
             </div>
         </div>
     </div>
 
+    <div id="bill-template" class="hidden p-10 bg-white text-slate-900 font-mono text-xs">
+        <div class="text-center border-b-2 pb-4 mb-4">
+            <h1 class="text-2xl font-bold uppercase">KHATRI STORE</h1>
+            <p>पंडरिया (छ.ग.) | मो: 9584035888</p>
+            <p class="font-bold mt-2 uppercase underline">कच्चा बिल / ESTIMATE</p>
+        </div>
+        <div class="flex justify-between mb-4"><div id="bill-cust"></div><div id="bill-date"></div></div>
+        <table class="w-full text-left border-b mb-4"><tbody id="bill-items"></tbody></table>
+        <div class="text-right font-black text-lg uppercase">कुल राशि: ₹<span id="bill-total"></span></div>
+    </div>
+
+    <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" loop></audio>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
@@ -69,36 +104,113 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const storage = getStorage(app);
+        let ordersData = {}, productsData = {}, imgUrl = "https://via.placeholder.com/150";
 
-        // --- ऑफर लोड करना ---
-        onValue(ref(db, 'storeOffer'), (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('offer-text').value = data.text;
-                document.getElementById('offer-toggle').checked = data.show;
-            }
+        // --- ऑफर फंक्शन्स ---
+        onValue(ref(db, 'storeOffer'), (snap) => {
+            const data = snap.val();
+            if(data) { document.getElementById('offer-text').value = data.text; document.getElementById('offer-toggle').checked = data.show; }
         });
-
-        // --- ऑफर सेव करना ---
         window.saveOffer = async () => {
             const text = document.getElementById('offer-text').value;
             const show = document.getElementById('offer-toggle').checked;
             await set(ref(db, 'storeOffer'), { text, show });
-            alert("ऑफर सफलतापूर्वक अपडेट हो गया!");
+            alert("ऑफर अपडेट हो गया!");
         };
 
         // --- टैब स्विचिंग ---
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.getElementById('sec-' + tab).classList.remove('hidden');
-            document.querySelectorAll('button[id^="tab-"]').forEach(b => {
-                b.classList.remove('bg-orange-500', 'text-white');
-                b.classList.add('bg-slate-50', 'text-slate-400');
-            });
-            document.getElementById('tab-' + tab).classList.add('bg-orange-500', 'text-white');
+            document.querySelectorAll('button[id^="tab-"]').forEach(b => b.classList.remove('active-tab', 'bg-white', 'text-slate-900'));
+            document.getElementById('tab-' + tab).classList.add('active-tab');
         };
 
-        // [बाकी पुराने ऑर्डर्स और स्टॉक वाले फंक्शन यहाँ रहेंगे...]
+        // --- इमेज प्रीव्यू ---
+        window.previewImg = (input) => {
+            if (input.files[0]) {
+                document.getElementById('preview').src = URL.createObjectURL(input.files[0]);
+                document.getElementById('preview').classList.remove('hidden');
+                document.getElementById('placeholder').classList.add('hidden');
+            }
+        };
+
+        // --- सामान सेव करना ---
+        window.saveProduct = async () => {
+            const name = document.getElementById('p-name').value, price = Number(document.getElementById('p-price').value), stock = Number(document.getElementById('p-stock').value), cat = document.getElementById('p-cat-select').value, file = document.getElementById('img-input').files[0], btn = document.getElementById('save-btn');
+            if(!name || !price) return alert("Fill Name and Price");
+            btn.innerText = "Processing..."; btn.disabled = true;
+            try {
+                if (file) {
+                    const sr = sRef(storage, 'p/' + Date.now());
+                    await uploadBytes(sr, file);
+                    imgUrl = await getDownloadURL(sr);
+                }
+                await push(ref(db, 'products'), { name, category: cat, price, stock, image: imgUrl, createdAt: Date.now() });
+                alert("Saved!"); location.reload();
+            } catch (e) { alert(e.message); btn.innerText = "सेव करें"; btn.disabled = false; }
+        };
+
+        // --- आर्डर्स मॉनिटर ---
+        onValue(ref(db, 'orders'), (snap) => {
+            ordersData = snap.val() || {};
+            let html = "", newCount = 0;
+            Object.keys(ordersData).reverse().forEach(id => {
+                const o = ordersData[id];
+                if(o.status !== 'Done') {
+                    newCount++;
+                    html += `
+                        <div class="bg-white p-4 rounded-3xl border new-order-card relative">
+                            <div class="flex justify-between items-start mb-2">
+                                <div><h3 class="font-black text-xs uppercase">${o.customer.name}</h3><a href="tel:${o.customer.phone}" class="text-blue-600 text-[10px] font-bold underline">${o.customer.phone}</a></div>
+                                <div class="flex gap-2">
+                                    <button onclick="updateO('${id}', 'Done')" class="bg-green-600 text-white p-2 rounded-xl"><i data-lucide="check" class="w-3 h-3"></i></button>
+                                    <button onclick="printB('${id}')" class="bg-slate-900 text-white p-2 rounded-xl"><i data-lucide="printer" class="w-3 h-3"></i></button>
+                                </div>
+                            </div>
+                            <div class="text-[9px] text-gray-400 mb-2 truncate">${o.items.map(i => i.name).join(', ')}</div>
+                            <div class="font-black text-lg">₹${o.total}</div>
+                        </div>`;
+                }
+            });
+            document.getElementById('order-list').innerHTML = html || "<p class='text-center py-10 opacity-30'>NO ORDERS</p>";
+            if(newCount > 0) document.getElementById('alarm-sound').play().catch(()=>{}); else document.getElementById('alarm-sound').pause();
+            lucide.createIcons();
+        });
+
+        // --- कैटेगरी और स्टॉक ---
+        window.addCat = async () => { const v = document.getElementById('new-cat-input').value; if(v) await push(ref(db, 'cats'), { name: v }); document.getElementById('new-cat-input').value = ""; };
+        onValue(ref(db, 'cats'), (snap) => {
+            const cats = snap.val() || {};
+            let h = "", o = '<option value="General">General</option>';
+            for(let id in cats) {
+                h += `<span class="bg-slate-100 p-2 rounded-xl text-[10px] font-bold border">${cats[id].name} <button onclick="delCat('${id}')" class="text-red-500">×</button></span>`;
+                o += `<option value="${cats[id].name}">${cats[id].name}</option>`;
+            }
+            document.getElementById('cat-list-display').innerHTML = h;
+            document.getElementById('p-cat-select').innerHTML = o;
+        });
+        onValue(ref(db, 'products'), (snap) => {
+            productsData = snap.val() || {};
+            let h = "";
+            for(let id in productsData) {
+                h += `<div class="flex items-center gap-3 p-3 bg-white rounded-2xl border text-[10px] font-bold uppercase shadow-sm"><span>${productsData[id].name}</span><button onclick="delProd('${id}')" class="ml-auto text-red-300">X</button></div>`;
+            }
+            document.getElementById('stock-list').innerHTML = h;
+        });
+
+        window.delCat = (id) => remove(ref(db, 'cats/'+id));
+        window.delProd = (id) => remove(ref(db, 'products/'+id));
+        window.updateO = (id, s) => update(ref(db, 'orders/'+id), {status: s});
+        window.printB = (id) => {
+            const o = ordersData[id];
+            document.getElementById('bill-cust').innerHTML = `<b>ग्राहक:</b> ${o.customer.name}<br><b>फोन:</b> ${o.customer.phone}`;
+            document.getElementById('bill-date').innerText = new Date().toLocaleDateString();
+            document.getElementById('bill-total').innerText = o.total;
+            document.getElementById('bill-items').innerHTML = o.items.map(i => `<tr class="border-b"><td class="py-2">${i.name}</td><td class="text-right font-bold">₹${i.price}</td></tr>`).join('');
+            window.print();
+        };
         lucide.createIcons();
     </script>
 </body>
