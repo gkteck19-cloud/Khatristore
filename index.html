@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHATRI STORE - Online Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .promo-banner-wrap { overflow: hidden; white-space: nowrap; }
+        .promo-banner { display: inline-block; animation: slide 20s linear infinite; }
+        @keyframes slide { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+        .active-nav { color: #f97316 !important; transform: translateY(-5px); transition: 0.3s; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-900 font-sans pb-24">
+
+    <div id="offer-banner-wrap" class="hidden bg-orange-600 text-white py-2 text-[11px] font-black uppercase tracking-tighter sticky top-0 z-[110] shadow-lg">
+        <div class="promo-banner-wrap">
+            <div id="offer-text-display" class="promo-banner italic">
+                </div>
+        </div>
+    </div>
+
+    <div class="bg-slate-900 text-white px-5 pt-4 pb-12 rounded-b-[40px] shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-black italic text-orange-400 tracking-tighter uppercase">Khatri Store</h1>
+            <button onclick="showPage('orders')" class="text-[10px] bg-slate-800 px-4 py-2 rounded-full border border-slate-700 font-black">MY ORDERS</button>
+        </div>
+        <div class="relative text-slate-900">
+            <i data-lucide="search" class="absolute left-4 top-4 text-gray-400 w-4 h-4"></i>
+            <input type="text" id="search-input" oninput="handleSearch(this.value.toLowerCase())" placeholder="क्या सामान चाहिए? यहाँ खोजें..." class="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-xl outline-none text-sm font-bold border-none">
+        </div>
+    </div>
+
+    <div id="home-page">
+        <div id="cat-bar" class="flex gap-2 overflow-x-auto no-scrollbar px-4 my-6"></div>
+
+        <div class="px-4 mb-6">
+            <h2 class="text-[10px] font-black uppercase mb-3 text-slate-400 flex items-center gap-2">
+                <i data-lucide="award" class="w-3 h-3 text-orange-500"></i> Top Selling Items
+            </h2>
+            <div id="best-sellers" class="flex gap-3 overflow-x-auto no-scrollbar"></div>
+        </div>
+
+        <div id="product-grid" class="max-w-7xl mx-auto px-4 grid grid-cols-2 gap-3 mb-10">
+            <p class="col-span-2 text-center text-gray-400 py-10 italic">लोड हो रहा है...</p>
+        </div>
+    </div>
+
+    <div id="orders-page" class="hidden px-5 pt-6 animate-pulse">
+        <h2 class="text-2xl font-black mb-6 italic uppercase tracking-tighter">आर्डर ट्रैकिंग</h2>
+        <div id="order-history-list" class="space-y-4"></div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t px-6 py-4 flex justify-between items-center z-[150] shadow-2xl">
+        <button onclick="showPage('home')" id="nav-home" class="active-nav flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="home" class="w-5 h-5"></i><span class="text-[9px] font-bold">HOME</span>
+        </button>
+        <button onclick="showPage('orders')" id="nav-orders" class="flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="package" class="w-5 h-5"></i><span class="text-[9px] font-bold">ORDERS</span>
+        </button>
+        <button onclick="toggleCart()" class="relative bg-slate-900 text-white p-4 rounded-2xl -mt-12 shadow-xl border-4 border-white">
+            <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+            <span id="cart-count" class="absolute -top-1 -right-1 bg-orange-500 text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
+        </button>
+        <button onclick="window.open('https://wa.me/919584035888')" class="flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="message-circle" class="w-5 h-5"></i><span class="text-[9px] font-bold">WHATSAPP</span>
+        </button>
+        <button onclick="logout()" class="flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="log-out" class="w-5 h-5"></i><span class="text-[9px] font-bold">EXIT</span>
+        </button>
+    </nav>
+
+    <div id="login-modal" class="fixed inset-0 bg-black/90 z-[300] hidden flex items-center justify-center p-8 backdrop-blur-md">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 text-center">
+            <h2 class="text-3xl font-black mb-2 uppercase italic tracking-tighter text-slate-900">Khatri Store</h2>
+            <p class="text-[10px] text-gray-400 mb-8 font-bold uppercase tracking-widest">आर्डर के लिए लॉगिन करें</p>
+            <input type="text" id="cust-name" placeholder="आपका नाम लिखें" class="w-full bg-slate-50 border-none p-4 rounded-2xl mb-4 outline-none text-sm font-bold">
+            <input type="tel" id="cust-phone" placeholder="मोबाइल नंबर" class="w-full bg-slate-50 border-none p-4 rounded-2xl mb-8 outline-none text-sm font-bold">
+            <button onclick="processOrder()" class="w-full bg-orange-500 text-white py-5 rounded-2xl font-black uppercase shadow-lg shadow-orange-200">आर्डर कन्फर्म करें</button>
+        </div>
+    </div>
+
+    <div id="cart-drawer" class="fixed inset-0 bg-black/50 z-[200] hidden flex justify-end">...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.firebasestorage.app",
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let cart = [], allProducts = {}, currentCat = "All", searchTerm = "";
+
+        // --- 📢 Admin Offer Listener ---
+        onValue(ref(db, 'storeOffer'), (snap) => {
+            const data = snap.val();
+            const wrap = document.getElementById('offer-banner-wrap');
+            const text = document.getElementById('offer-text-display');
+            if(data && data.show) {
+                wrap.classList.remove('hidden');
+                text.innerText = data.text + " • " + data.text + " • " + data.text; // Repeat for loop effect
+            } else {
+                wrap.classList.add('hidden');
+            }
+        });
+
+        // --- Navigation ---
+        window.showPage = (page) => {
+            document.getElementById('home-page').classList.toggle('hidden', page !== 'home');
+            document.getElementById('orders-page').classList.toggle('hidden', page !== 'orders');
+            document.getElementById('nav-home').classList.toggle('active-nav', page === 'home');
+            document.getElementById('nav-orders').classList.toggle('active-nav', page === 'orders');
+            if(page === 'orders') fetchMyOrders();
+        };
+
+        // --- Data Logic (Products/Orders) ---
+        onValue(ref(db, 'products'), (snap) => {
+            allProducts = snap.val() || {};
+            renderProducts();
+        });
+
+        function renderProducts() {
+            let html = "", bestHtml = "";
+            for (let id in allProducts) {
+                const p = allProducts[id];
+                if (p.name.toLowerCase().includes(searchTerm) && (currentCat === "All" || p.category === currentCat)) {
+                    const isOut = p.stock <= 0;
+                    const card = `
+                        <div class="bg-white p-3 rounded-3xl shadow-sm border border-slate-50 relative overflow-hidden">
+                            <img src="${p.image}" class="h-28 w-full object-contain mb-3 ${isOut ? 'grayscale opacity-50' : ''}">
+                            <h3 class="font-bold text-[10px] uppercase mb-1 line-clamp-2 h-7 italic leading-tight">${p.name}</h3>
+                            <p class="font-black text-sm mb-3">₹${p.price}</p>
+                            <button onclick="${isOut ? '' : `addToCart('${id}', '${p.name}', ${p.price})`}" 
+                                class="w-full py-2.5 rounded-xl text-[9px] font-black uppercase ${isOut ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white active:bg-orange-500'}">
+                                ${isOut ? 'Stock Out' : 'Buy Now'}
+                            </button>
+                        </div>`;
+                    html += card;
+                    if(p.stock < 5 && p.stock > 0) bestHtml += card.replace('h-28', 'h-20').replace('rounded-3xl', 'min-w-[140px]');
+                }
+            }
+            document.getElementById('product-grid').innerHTML = html || "<p class='col-span-2 text-center text-gray-400 py-10'>No items found</p>";
+            document.getElementById('best-sellers').innerHTML = bestHtml;
+            lucide.createIcons();
+        }
+
+        // --- Fetch Orders (Tracking) ---
+        function fetchMyOrders() {
+            const user = JSON.parse(localStorage.getItem('khatri_user'));
+            if(!user) return document.getElementById('login-modal').classList.remove('hidden');
+            
+            onValue(ref(db, 'orders'), (snap) => {
+                const orders = snap.val() || {};
+                let html = "";
+                for(let id in orders) {
+                    if(orders[id].customer.phone === user.phone) {
+                        const status = orders[id].status || 'New';
+                        html += `
+                            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-[10px] font-black uppercase text-slate-400 italic">Order ID: ...${id.slice(-5)}</span>
+                                    <span class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-[9px] font-black uppercase">${status}</span>
+                                </div>
+                                <p class="text-xs font-bold truncate">${orders[id].items.map(i=>i.name).join(', ')}</p>
+                                <div class="mt-3 text-lg font-black">₹${orders[id].total}</div>
+                            </div>`;
+                    }
+                }
+                document.getElementById('order-history-list').innerHTML = html || "<p class='text-center py-10 opacity-30'>NO HISTORY</p>";
+            });
+        }
+
+        // [Cart and Search logic same as before...]
+        window.handleSearch = (v) => { searchTerm = v; renderProducts(); };
+        window.addToCart = (id, n, p) => { cart.push({name: n, price: p}); updateCart(); };
+        window.toggleCart = () => document.getElementById('cart-drawer').classList.toggle('hidden');
+        function updateCart() {
+            document.getElementById('cart-count').innerText = cart.length;
+            let total = 0;
+            document.getElementById('cart-items').innerHTML = cart.map(i => { total += i.price; return `<div class="p-3 bg-slate-50 rounded-xl flex justify-between text-xs font-bold"><span>${i.name}</span><b>₹${i.price}</b></div>` }).join('');
+            document.getElementById('cart-total').innerText = `₹${total}`;
+        }
+
+        window.logout = () => { if(confirm("Exit Shop?")) { localStorage.clear(); location.reload(); } };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
