@@ -3,37 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHATRI ADMIN - Pro Control</title>
+    <title>KHATRI ADMIN - स्टॉक मैनेजमेंट</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-slate-100 pb-20 p-4 font-sans">
+<body class="bg-slate-50 pb-20 p-4 font-sans">
 
     <div class="max-w-2xl mx-auto">
-        <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl border-b-4 border-orange-500">
-            <div>
-                <h1 class="text-xl font-black italic text-orange-400 tracking-tighter uppercase">Khatri Admin</h1>
-                <p class="text-[10px] opacity-60 uppercase font-bold tracking-widest">Category & Stock Manager</p>
-            </div>
-            <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
+        <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl">
+            <h1 class="text-xl font-black italic text-orange-400 uppercase">Khatri Admin</h1>
+            <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
         </header>
-
-        <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-orange-500">
-            <h2 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
-                <i data-lucide="layers"></i> कैटेगरी मैनेज करें
-            </h2>
-            <div class="flex gap-2 mb-4">
-                <input type="text" id="new-cat-name" placeholder="नई कैटेगरी का नाम" class="flex-1 border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
-                <button onclick="addCategory()" class="bg-slate-900 text-white px-6 rounded-2xl font-bold">+</button>
-            </div>
-            <div id="cat-list-admin" class="flex flex-wrap gap-2">
-                </div>
-        </div>
 
         <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border border-slate-200">
             <h2 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
-                <i data-lucide="plus-circle" class="text-orange-500"></i> सामान अपलोड करें
+                <i data-lucide="plus-circle" class="text-orange-500"></i> नया स्टॉक अपलोड
             </h2>
+            
+            <div class="grid gap-4">
+                <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-4 rounded-3xl bg-slate-50 relative overflow-hidden h-48">
+                    <input type="file" id="img-input" accept="image/*" class="hidden" onchange="previewImage(this)">
+                    <div id="img-preview-box" class="text-center cursor-pointer" onclick="document.getElementById('img-input').click()">
+                        <i data-lucide="camera" class="w-10 h-10 mx-auto text-slate-400 mb-2"></i>
+                        <p class="text-xs text-slate-500 font-bold">फोटो खींचें या गैलरी से चुनें</p>
+                    </div>
+                    <img id="img-preview" class="hidden absolute inset-0 w-full h-full object-contain bg-white">
+                </div>
+
+                <input type="text" id="prod-name" placeholder="सामान का नाम" class="w-full border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none focus:border-orange-500">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="prod-price" placeholder="रेट (₹)" class="border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none">
+                    <input type="number" id="prod-stock" placeholder="स्टॉक मात्रा" class="border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none">
+                </div>
+
+                <button id="save-btn" onclick="uploadAndSave()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg uppercase tracking-widest active:scale-95 transition">स्टॉक में सेव करें</button>
+            </div>
+        </div>
+
+        <div id="product-list" class="space-y-4">
+            <p class="text-center text-slate-400 py-10">स्टॉक लोड हो रहा है...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.firebasestorage.app",
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+
+        // --- फोटो प्रीव्यू ---
+        window.previewImage = (input) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.getElementById('img-preview');
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        // --- स्टॉक सेव करना ---
+        window.uploadAndSave = async () => {
+            const name = document.getElementById('prod-name').value;
+            const price = document.getElementById('prod-price').value;
+            const stock = document.getElementById('prod-stock').value;
+            const file = document.getElementById('img-input').files[0];
+            const btn = document.getElementById('save-btn');
+
+            if (!name || !price) return alert("नाम और रेट भरें!");
+
+            btn.innerText = "अपलोड हो रहा है...";
+            btn.disabled = true;
+
+            let imageUrl = "https://via.placeholder.com/150?text=No+Image";
+
+            try {
+                // अगर फोटो है तो स्टोरेज में अपलोड करें
+                if (file) {
+                    const storageRef = sRef(storage, `products/${Date.now()}_${file.name}`);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    imageUrl = await getDownloadURL(snapshot.ref);
+                }
+
+                // डेटाबेस में सेव करें
+                const newProdRef = push(ref(db, 'products'));
+                await set(newProdRef, {
+                    name, price: Number(price), stock: Number(stock),
+                    image: imageUrl, createdAt: Date.now()
+                });
+
+                alert("सफल! स्टॉक अपडेट हो गया।");
+                location.reload();
+            } catch (err) {
+                alert("एरर: " + err.message);
+                btn.innerText = "स्टॉक में सेव करें";
+                btn.disabled = false;
+            }
+        };
+
+        // --- स्टॉक लिस्ट रेंडरिंग ---
+        onValue(ref(db, 'products'), (snapshot) => {
+            const data = snapshot.val();
+            let html = "";
+            for (let id in data) {
+                const p = data[id];
+                html += `
+                    <div class="bg-white p-3 rounded-2xl flex items-center gap-4 shadow-sm border border-slate-100">
+                        <img src="${p.image}" class="w-16 h-16 object-contain rounded-xl bg-slate-50">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-sm uppercase">${p.name}</h3>
+                            <p class="font-black text-orange-600">₹${p.price} | <span class="text-slate-400 font-normal">स्टॉक: ${p.stock}</span></p>
+                        </div>
+                        <button onclick="deleteProd('${id}')" class="text-red-400 p-2"><i data-lucide="trash-2"></i></button>
+                    </div>`;
+            }
+            document.getElementById('product-list').innerHTML = html || "<p class='text-center py-10'>कोई सामान नहीं है।</p>";
+            lucide.createIcons();
+        });
+
+        window.deleteProd = async (id) => {
+            if (confirm("क्या आप इसे डिलीट करना चाहते हैं?")) {
+                await remove(ref(db, `products/${id}`));
+            }
+        };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
             <div class="grid gap-3">
                 <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
                 <select id="prod-cat-select" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
