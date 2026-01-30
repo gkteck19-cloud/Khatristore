@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHATRI STORE - Customer Login</title>
+    <title>KHATRI STORE - Online Shop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -13,27 +13,159 @@
 </head>
 <body class="bg-gray-50 text-slate-900 font-sans">
 
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-6 hidden">
-        <div class="bg-white w-full max-w-sm rounded-[30px] p-8 shadow-2xl text-center">
-            <h2 class="text-3xl font-black italic text-slate-900 mb-2">KHATRI STORE</h2>
-            <p class="text-gray-500 text-sm mb-8">ऑर्डर देने के लिए अपना नंबर डालें</p>
+    <div id="login-modal" class="fixed inset-0 bg-black/80 z-[200] hidden flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-[30px] p-8 shadow-2xl text-center relative">
+            <button onclick="closeLogin()" class="absolute right-6 top-6 text-gray-400"><i data-lucide="x"></i></button>
+            <h2 class="text-2xl font-black text-slate-900 mb-2 uppercase">KHATRI STORE</h2>
+            <p class="text-gray-500 text-sm mb-6">ऑर्डर पूरा करने के लिए अपनी जानकारी भरें</p>
             <input type="text" id="cust-name" placeholder="आपका नाम" class="w-full border-2 border-gray-100 p-4 rounded-2xl mb-3 outline-none focus:border-orange-500">
             <input type="tel" id="cust-phone" placeholder="मोबाइल नंबर" class="w-full border-2 border-gray-100 p-4 rounded-2xl mb-6 outline-none focus:border-orange-500">
-            <button onclick="handleLogin()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-orange-200 uppercase tracking-widest">दुकान में प्रवेश करें</button>
+            <button onclick="processOrder()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg uppercase tracking-widest">ऑर्डर कन्फर्म करें</button>
         </div>
     </div>
 
     <div id="main-app">
         <nav class="bg-slate-900 text-white p-4 sticky top-0 z-[100] flex justify-between items-center shadow-md">
             <h1 class="text-xl font-black italic text-orange-400 tracking-tighter">KHATRI STORE</h1>
-            <div class="flex items-center gap-4">
-                <span id="user-display" class="text-[10px] bg-slate-800 px-2 py-1 rounded border border-slate-700"></span>
-                <div class="relative cursor-pointer" onclick="toggleCart()">
-                    <i data-lucide="shopping-cart"></i>
-                    <span id="cart-count" class="absolute -top-2 -right-2 bg-orange-500 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
-                </div>
+            <div class="relative cursor-pointer" onclick="toggleCart()">
+                <i data-lucide="shopping-cart"></i>
+                <span id="cart-count" class="absolute -top-2 -right-2 bg-orange-500 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
             </div>
         </nav>
+
+        <div class="bg-slate-900 text-white px-4 pb-12 pt-4 rounded-b-[40px] text-center mb-6 shadow-xl relative">
+            <h2 class="text-3xl font-black tracking-tight uppercase mb-1">KHATRI STORE</h2>
+            <p class="text-[10px] opacity-50 uppercase tracking-widest mb-6">Best Electronics Store</p>
+            <div class="absolute -bottom-6 left-4 right-4 max-w-md mx-auto">
+                <div class="relative flex items-center text-slate-900">
+                    <i data-lucide="search" class="absolute left-4 text-gray-400 w-4 h-4"></i>
+                    <input type="text" oninput="handleSearch(this)" placeholder="सामान का नाम खोजें..." class="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-xl outline-none text-sm border-none">
+                </div>
+            </div>
+        </div>
+
+        <div id="product-grid" class="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-24 mt-10"></div>
+    </div>
+
+    <div id="cart-drawer" class="fixed inset-0 bg-black/50 z-[150] hidden flex justify-end">
+        <div class="w-80 bg-white h-full p-6 flex flex-col">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 class="text-lg font-bold uppercase tracking-tight">Khatri Cart</h2>
+                <button onclick="toggleCart()"><i data-lucide="x"></i></button>
+            </div>
+            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3"></div>
+            <div class="mt-auto pt-6 border-t">
+                <div class="flex justify-between text-xl font-bold mb-6">
+                    <span>Total:</span><span id="cart-total" class="text-orange-500">₹0</span>
+                </div>
+                <button onclick="initiateOrder()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition">
+                    🛒 ऑर्डर बुक करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.firebasestorage.app",
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let cart = [], allProducts = {};
+
+        // डेटा लोड करना
+        onValue(ref(db, 'products'), (snapshot) => {
+            allProducts = snapshot.val() || {};
+            renderProducts("");
+        });
+
+        window.handleSearch = (e) => renderProducts(e.value.toLowerCase());
+
+        function renderProducts(term) {
+            let html = "";
+            for (let id in allProducts) {
+                const item = allProducts[id];
+                if (item.name.toLowerCase().includes(term)) {
+                    const out = item.stock <= 0;
+                    html += `
+                        <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col product-card transition">
+                            <img src="${item.image}" class="h-32 object-contain mb-2 ${out ? 'grayscale opacity-50' : ''}">
+                            <h3 class="font-bold text-[10px] uppercase mb-1 line-clamp-2 h-8 leading-tight">${item.name}</h3>
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="text-slate-900 font-black">₹${item.price}</p>
+                                <span class="text-[8px] text-gray-400 font-bold italic">Stock: ${item.stock}</span>
+                            </div>
+                            <button onclick="${out ? '' : `addToCart('${id}', '${item.name}', ${item.price})`}" 
+                                class="w-full py-2 rounded-xl text-[10px] font-bold ${out ? 'bg-gray-200' : 'bg-slate-900 text-white'} transition active:scale-90">
+                                ${out ? 'STOCK OUT' : 'ADD TO CART'}
+                            </button>
+                        </div>`;
+                }
+            }
+            document.getElementById('product-grid').innerHTML = html || "<p class='col-span-2 text-center text-gray-400 py-10'>सामान नहीं मिला</p>";
+            lucide.createIcons();
+        }
+
+        window.addToCart = (id, name, price) => { cart.push({name, price}); updateUI(); };
+        window.toggleCart = () => document.getElementById('cart-drawer').classList.toggle('hidden');
+        
+        function updateUI() {
+            document.getElementById('cart-count').innerText = cart.length;
+            let total = 0;
+            document.getElementById('cart-items').innerHTML = cart.map(i => { total += i.price; return `<div class="flex justify-between p-3 bg-gray-50 rounded-xl text-xs"><span>${i.name}</span><b>₹${i.price}</b></div>` }).join('');
+            document.getElementById('cart-total').innerText = `₹${total}`;
+        }
+
+        // --- ऑर्डर की प्रक्रिया ---
+        window.initiateOrder = () => {
+            if(cart.length === 0) return alert("कार्ट खाली है!");
+            // अगर पहले से लॉगिन है तो सीधे ऑर्डर, वरना लॉगिन दिखाओ
+            const savedUser = localStorage.getItem('khatri_user');
+            if(savedUser) { processOrder(); } 
+            else { document.getElementById('login-modal').classList.remove('hidden'); }
+        };
+
+        window.closeLogin = () => document.getElementById('login-modal').classList.add('hidden');
+
+        window.processOrder = async () => {
+            let user = JSON.parse(localStorage.getItem('khatri_user'));
+            
+            // अगर लॉगिन नहीं है तो फॉर्म से डेटा लो
+            if(!user) {
+                const name = document.getElementById('cust-name').value;
+                const phone = document.getElementById('cust-phone').value;
+                if(name && phone.length >= 10) {
+                    user = { name, phone };
+                    localStorage.setItem('khatri_user', JSON.stringify(user));
+                } else { return alert("नाम और सही मोबाइल नंबर भरें!"); }
+            }
+
+            try {
+                const orderData = {
+                    customer: user,
+                    items: cart,
+                    total: cart.reduce((s, i) => s + i.price, 0),
+                    createdAt: Date.now(),
+                    status: 'Pending'
+                };
+                await push(ref(db, 'orders'), orderData);
+                alert("शुक्रिया " + user.name + "! आपका ऑर्डर बुक हो गया है।");
+                cart = []; updateUI(); toggleCart(); closeLogin();
+            } catch (e) { alert("Error: " + e.message); }
+        };
+    </script>
+</body>
+</html>
 
         <div class="bg-slate-900 text-white px-4 pb-12 pt-4 rounded-b-[40px] text-center mb-6 shadow-xl relative">
             <h2 class="text-3xl font-black tracking-tight uppercase">KHATRI STORE</h2>
