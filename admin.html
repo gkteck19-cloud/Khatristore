@@ -3,37 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHATRI ADMIN - लाइव अलार्म कंट्रोल</title>
+    <title>KHATRI ADMIN - बिलिंग सिस्टम</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @keyframes pulse-red {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        @media print {
+            body * { visibility: hidden; }
+            #bill-template, #bill-template * { visibility: visible; }
+            #bill-template { position: absolute; left: 0; top: 0; width: 100%; }
         }
-        .alarm-active { animation: pulse-red 1s infinite; border: 4px solid #ef4444 !important; }
+        .alarm-active { animation: pulse 1s infinite; border: 4px solid red !important; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="bg-slate-100 pb-20 p-4 font-sans">
 
-    <div id="admin-container" class="max-w-2xl mx-auto transition-all duration-300">
-        <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl border-b-4 border-orange-500">
+    <div class="max-w-2xl mx-auto">
+        <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl">
             <div>
                 <h1 class="text-xl font-black italic text-orange-400 tracking-tighter uppercase">Khatri Admin</h1>
-                <p class="text-[10px] opacity-60 uppercase font-bold tracking-widest">Live Order Monitor</p>
+                <p class="text-[10px] opacity-60 uppercase font-bold">Billing & Stock Control</p>
             </div>
-            <div class="flex gap-2">
-                <div id="alarm-indicator" class="hidden bg-red-600 px-3 py-1 rounded-full text-[10px] font-bold animate-bounce">🚨 नया ऑर्डर!</div>
-                <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
-            </div>
+            <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
         </header>
 
-        <div id="order-section" class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-blue-500 overflow-hidden transition-all">
+        <div id="order-section" class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-blue-600">
             <h2 class="font-bold text-lg mb-4 text-blue-600 flex items-center gap-2">
-                <i data-lucide="bell-ring" class="w-5 h-5"></i> लाइव ऑर्डर्स 
+                <i data-lucide="file-text"></i> नए ऑर्डर्स और बिलिंग
             </h2>
             <div id="order-list" class="space-y-4">
+                <p class="text-center text-gray-400 italic py-4 text-sm">ऑर्डर्स लोड हो रहे हैं...</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[30px] shadow-sm border border-slate-200">
+             <h2 class="font-bold text-lg mb-4 text-slate-800">स्टॉक मैनेजमेंट</h2>
+             <div id="product-list" class="space-y-4 text-xs"></div>
+        </div>
+    </div>
+
+    <div id="bill-template" class="hidden p-10 bg-white text-slate-900">
+        <div class="text-center border-b-2 border-slate-900 pb-4 mb-6">
+            <h1 class="text-3xl font-black italic">KHATRI STORE</h1>
+            <p class="text-sm">पंडरिया, छत्तीसगढ़ | मो: 9584035888</p>
+            <p class="font-bold mt-2 uppercase underline">कच्चा बिल (Estimate)</p>
+        </div>
+        <div class="flex justify-between mb-6 text-sm">
+            <div>
+                <p><strong>ग्राहक:</strong> <span id="bill-cust-name"></span></p>
+                <p><strong>मोबाइल:</strong> <span id="bill-cust-phone"></span></p>
+            </div>
+            <div class="text-right">
+                <p><strong>तारीख:</strong> <span id="bill-date"></span></p>
+            </div>
+        </div>
+        <table class="w-full text-left mb-10 border-collapse">
+            <thead>
+                <tr class="border-b-2 border-slate-300 text-sm">
+                    <th class="py-2">सामान</th>
+                    <th class="py-2 text-right">कीमत</th>
+                </tr>
+            </thead>
+            <tbody id="bill-items" class="text-sm"></tbody>
+        </table>
+        <div class="text-right border-t-2 border-slate-900 pt-4">
+            <p class="text-2xl font-black uppercase">कुल राशि: ₹<span id="bill-total"></span></p>
+        </div>
+        <div class="mt-20 text-center text-[10px] text-gray-400">
+            * यह एक कच्चा अनुमानित बिल है *
+        </div>
+    </div>
+
+    <audio id="order-alarm" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3"></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.firebasestorage.app",
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let currentOrders = {};
+
+        // --- ऑर्डर्स लोड और अलार्म ---
+        onValue(ref(db, 'orders'), (snapshot) => {
+            currentOrders = snapshot.val() || {};
+            let html = "";
+            for (let id in currentOrders) {
+                const o = currentOrders[id];
+                html += `
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-black text-slate-900 uppercase text-sm">${o.customer.name}</h3>
+                                <p class="text-blue-600 font-bold text-xs italic">${o.customer.phone}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="printBill('${id}')" class="bg-white p-2 rounded-lg border shadow-sm text-blue-600"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                                <button onclick="deleteOrder('${id}')" class="bg-white p-2 rounded-lg border shadow-sm text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-500 truncate mb-2">${o.items.map(i => i.name).join(', ')}</p>
+                        <p class="font-bold text-lg">₹${o.total}</p>
+                    </div>`;
+            }
+            document.getElementById('order-list').innerHTML = html || "<p class='text-center py-4 text-gray-400'>कोई ऑर्डर नहीं है।</p>";
+            lucide.createIcons();
+        });
+
+        // --- बिल प्रिंट फंक्शन ---
+        window.printBill = (id) => {
+            const order = currentOrders[id];
+            document.getElementById('bill-cust-name').innerText = order.customer.name;
+            document.getElementById('bill-cust-phone').innerText = order.customer.phone;
+            document.getElementById('bill-date').innerText = new Date().toLocaleDateString('hi-IN');
+            document.getElementById('bill-total').innerText = order.total;
+
+            let itemsHtml = "";
+            order.items.forEach(item => {
+                itemsHtml += `<tr><td class="py-2 border-b border-dotted uppercase">${item.name}</td><td class="py-2 border-b border-dotted text-right font-bold">₹${item.price}</td></tr>`;
+            });
+            document.getElementById('bill-items').innerHTML = itemsHtml;
+
+            window.print();
+        };
+
+        window.deleteOrder = async (id) => { if(confirm("ऑर्डर डिलीट करें?")) await remove(ref(db, 'orders/' + id)); };
+        
+        lucide.createIcons();
+    </script>
+</body>
+</html>
                 <p class="text-center text-gray-400 py-4 italic">आर्डर्स की प्रतीक्षा है...</p>
             </div>
         </div>
