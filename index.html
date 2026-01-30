@@ -9,6 +9,7 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .product-card:active { transform: scale(0.98); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-900 font-sans">
@@ -17,14 +18,14 @@
         <div class="flex items-center justify-center h-screen">
             <div class="text-center">
                 <div class="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="font-bold text-slate-500">KHATRI STORE लोड हो रहा है...</p>
+                <p class="font-bold text-slate-500 tracking-widest">KHATRI STORE</p>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
@@ -39,34 +40,33 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         let cart = [];
+        let allProducts = {};
 
-        const productsRef = ref(db, 'products');
-        onValue(productsRef, (snapshot) => {
-            const data = snapshot.val();
-            renderUI(data);
+        // डेटा लोड करना
+        onValue(ref(db, 'products'), (snapshot) => {
+            allProducts = snapshot.val() || {};
+            renderUI(allProducts);
         });
 
         function renderUI(products) {
             let productsHtml = "";
-            if (products) {
-                for (let id in products) {
-                    const item = products[id];
-                    const isOutOfStock = item.stock <= 0;
-                    productsHtml += `
-                        <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col product-card transition relative">
-                            <img src="${item.image}" class="h-32 object-contain mb-2 rounded-lg ${isOutOfStock ? 'grayscale opacity-50' : ''}">
-                            <h3 class="font-bold text-[11px] mb-1 line-clamp-2 h-8 leading-tight uppercase">${item.name}</h3>
-                            <div class="flex justify-between items-center mb-2">
-                                <p class="text-slate-900 font-black text-base">₹${item.price}</p>
-                                <span class="text-[9px] ${item.stock < 3 ? 'text-red-500 font-bold' : 'text-gray-400'}">स्टॉक: ${item.stock}</span>
-                            </div>
-                            <button onclick="${isOutOfStock ? '' : `addToCart('${id}', '${item.name}', ${item.price})`}" 
-                                class="w-full py-2 rounded-xl text-[10px] font-bold uppercase transition ${isOutOfStock ? 'bg-gray-200 text-gray-400' : 'bg-slate-900 text-white hover:bg-orange-500'}">
-                                ${isOutOfStock ? 'आउट ऑफ स्टॉक' : 'कार्ट में जोड़ें'}
-                            </button>
+            for (let id in products) {
+                const item = products[id];
+                const isOutOfStock = item.stock <= 0;
+                productsHtml += `
+                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col product-card transition">
+                        <img src="${item.image}" onclick="showDetail('${id}')" class="h-32 object-contain mb-2 rounded-lg cursor-pointer ${isOutOfStock ? 'grayscale opacity-50' : ''}">
+                        <h3 class="font-bold text-[11px] mb-1 line-clamp-2 h-8 leading-tight uppercase cursor-pointer" onclick="showDetail('${id}')">${item.name}</h3>
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-slate-900 font-black text-base">₹${item.price}</p>
+                            <span class="text-[9px] ${item.stock < 3 ? 'text-red-500 font-bold' : 'text-gray-400'}">स्टॉक: ${item.stock}</span>
                         </div>
-                    `;
-                }
+                        <button onclick="${isOutOfStock ? '' : `addToCart('${id}', '${item.name}', ${item.price})`}" 
+                            class="w-full py-2 rounded-xl text-[10px] font-bold uppercase transition ${isOutOfStock ? 'bg-gray-200 text-gray-400' : 'bg-slate-900 text-white hover:bg-orange-500'}">
+                            ${isOutOfStock ? 'आउट ऑफ स्टॉक' : 'कार्ट में जोड़ें'}
+                        </button>
+                    </div>
+                `;
             }
 
             document.getElementById('app').innerHTML = `
@@ -79,16 +79,20 @@
                 </nav>
 
                 <div class="bg-slate-900 text-white px-4 pb-10 pt-4 rounded-b-[40px] text-center mb-6 shadow-xl">
-                    <h2 class="text-3xl font-black tracking-tight text-white mb-1">KHATRI STORE</h2>
+                    <h2 class="text-3xl font-black tracking-tight text-white mb-1 uppercase">KHATRI STORE</h2>
                     <p class="text-[10px] opacity-60 tracking-widest uppercase font-bold">Best Quality • Best Price</p>
                 </div>
 
                 <div class="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-3 mb-24">
-                    ${productsHtml || '<p class="col-span-2 text-center text-gray-400 py-10">जल्द ही नया स्टॉक आ रहा है...</p>'}
+                    ${productsHtml || '<p class="col-span-2 text-center text-gray-400 py-10 italic">स्टॉक अपडेट हो रहा है...</p>'}
+                </div>
+
+                <div id="product-modal" class="fixed inset-0 bg-black/80 z-[150] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div id="modal-content" class="bg-white w-full max-w-sm rounded-3xl overflow-hidden relative p-6"></div>
                 </div>
 
                 <div id="cart-drawer" class="fixed inset-0 bg-black/50 z-[100] hidden flex justify-end">
-                    <div class="w-80 bg-white h-full p-6 flex flex-col">
+                    <div class="w-80 bg-white h-full p-6 flex flex-col animate-slide-in">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
                             <h2 class="text-lg font-bold">KHATRI CART</h2>
                             <button onclick="toggleCart()"><i data-lucide="x"></i></button>
@@ -96,7 +100,7 @@
                         <div id="cart-items" class="flex-1 overflow-y-auto space-y-3"></div>
                         <div class="mt-auto pt-6 border-t">
                             <div class="flex justify-between text-xl font-bold mb-6">
-                                <span>Total:</span><span id="cart-total" class="text-orange-500">₹0</span>
+                                <span>कुल राशि:</span><span id="cart-total" class="text-orange-500">₹0</span>
                             </div>
                             <button onclick="confirmOrder()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition">
                                 <i data-lucide="send"></i> ऑर्डर भेजें (WhatsApp)
@@ -108,83 +112,51 @@
             lucide.createIcons();
         }
 
-        window.addToCart = (id, name, price) => {
-            cart.push({ name, price });
-            updateCartUI();
+        window.showDetail = (id) => {
+            const item = allProducts[id];
+            const modal = document.getElementById('product-modal');
+            document.getElementById('modal-content').innerHTML = `
+                <button onclick="closeModal()" class="absolute right-4 top-4 text-gray-400"><i data-lucide="x"></i></button>
+                <img src="${item.image}" class="h-48 w-full object-contain mb-4">
+                <h2 class="text-xl font-bold mb-2 uppercase">${item.name}</h2>
+                <p class="text-orange-600 font-black text-2xl mb-4">₹${item.price}</p>
+                <div class="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 mb-6 max-h-32 overflow-y-auto italic">
+                    ${item.description || "इस सामान के लिए कोई अतिरिक्त विवरण नहीं है।"}
+                </div>
+                <button onclick="addToCart('${id}', '${item.name}', ${item.price}); closeModal();" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg">कार्ट में जोड़ें</button>
+            `;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
         };
 
-        window.toggleCart = () => {
-            document.getElementById('cart-drawer').classList.toggle('hidden');
-            updateCartUI();
-        };
+        window.closeModal = () => document.getElementById('product-modal').classList.add('hidden');
+        window.addToCart = (id, name, price) => { cart.push({ name, price }); updateCartUI(); };
+        window.toggleCart = () => { document.getElementById('cart-drawer').classList.toggle('hidden'); updateCartUI(); };
 
         function updateCartUI() {
             const cartList = document.getElementById('cart-items');
-            const totalEl = document.getElementById('cart-total');
             const countEl = document.getElementById('cart-count');
+            const totalEl = document.getElementById('cart-total');
             countEl.innerText = cart.length;
             let total = 0;
             cartList.innerHTML = cart.map(item => {
                 total += item.price;
-                return `<div class="flex justify-between text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 italic"><span>${item.name}</span><b>₹${item.price}</b></div>`;
+                return `<div class="flex justify-between text-xs bg-gray-50 p-3 rounded-xl border border-gray-100"><span>${item.name}</span><b>₹${item.price}</b></div>`;
             }).join('');
             totalEl.innerText = `₹${total}`;
         }
 
-        window.confirmOrder = async () => {
+        window.confirmOrder = () => {
             if (cart.length === 0) return;
             let message = "📦 *नया ऑर्डर: KHATRI STORE*\n\n";
             cart.forEach((item, i) => { message += `${i+1}. ${item.name} - ₹${item.price}\n`; });
             message += `\n*कुल राशि: ₹${cart.reduce((s, i) => s + i.price, 0)}*\n\nकृपया मेरा ऑर्डर कन्फर्म करें।`;
-            const whatsappUrl = `https://wa.me/919584035888?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
+            window.open(`https://wa.me/919584035888?text=${encodeURIComponent(message)}`, '_blank');
         };
     </script>
 </body>
 </html>
-            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        let cart = [];
-
-        // --- डेटा लोड करने का फंक्शन ---
-        const productsRef = ref(db, 'products');
-        onValue(productsRef, (snapshot) => {
-            const data = snapshot.val();
-            renderUI(data);
-        });
-
-        function renderUI(products) {
-            let productsHtml = "";
-            if (products) {
-                for (let id in products) {
-                    const item = products[id];
-                    const isOutOfStock = item.stock <= 0;
-                    productsHtml += `
-                        <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col product-card transition relative">
-                            <img src="${item.image}" class="h-32 object-contain mb-2 rounded-lg ${isOutOfStock ? 'grayscale opacity-50' : ''}">
-                            <h3 class="font-bold text-[11px] mb-1 line-clamp-2 h-8 leading-tight">${item.name}</h3>
-                            <div class="flex justify-between items-center mb-2">
-                                <p class="text-slate-900 font-black text-base">₹${item.price}</p>
-                                <span class="text-[9px] ${item.stock < 3 ? 'text-red-500' : 'text-gray-400'}">स्टॉक: ${item.stock}</span>
-                            </div>
-                            <button onclick="${isOutOfStock ? '' : `addToCart('${id}', '${item.name}', ${item.price})`}" 
-                                class="w-full py-2 rounded-xl text-[10px] font-bold uppercase transition ${isOutOfStock ? 'bg-gray-200 text-gray-400' : 'bg-slate-900 text-white hover:bg-orange-500'}">
-                                ${isOutOfStock ? 'स्टॉक खत्म' : 'Cart में जोड़ें'}
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-
-            document.getElementById('app').innerHTML = `
-                <nav class="bg-slate-900 text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md">
-                    <h1 class="text-xl font-black italic text-orange-400">KHATRI STORE</h1>
-                    <div class="relative cursor-pointer" onclick="toggleCart()">
-                        <i data-lucide="shopping-cart"></i>
-                        <span id="cart-count" class="absolute -top-2 -right-2 bg-orange-500 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">${cart.length}</span>
+ class="absolute -top-2 -right-2 bg-orange-500 text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">${cart.length}</span>
                     </div>
                 </nav>
 
