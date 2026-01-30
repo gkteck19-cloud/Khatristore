@@ -3,53 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khatri Admin - Realtime</title>
+    <title>KHATRI ADMIN - लाइव अलार्म कंट्रोल</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .alarm-active { animation: pulse-red 1s infinite; border: 4px solid #ef4444 !important; }
+    </style>
 </head>
-<body class="bg-gray-100 pb-20 p-4">
+<body class="bg-slate-100 pb-20 p-4 font-sans">
 
-    <div class="max-w-2xl mx-auto">
-        <h1 class="text-2xl font-black mb-6 bg-slate-900 text-white p-4 rounded-2xl shadow-lg">📦 खत्री एडमिन (Realtime)</h1>
+    <div id="admin-container" class="max-w-2xl mx-auto transition-all duration-300">
+        <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl border-b-4 border-orange-500">
+            <div>
+                <h1 class="text-xl font-black italic text-orange-400 tracking-tighter uppercase">Khatri Admin</h1>
+                <p class="text-[10px] opacity-60 uppercase font-bold tracking-widest">Live Order Monitor</p>
+            </div>
+            <div class="flex gap-2">
+                <div id="alarm-indicator" class="hidden bg-red-600 px-3 py-1 rounded-full text-[10px] font-bold animate-bounce">🚨 नया ऑर्डर!</div>
+                <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
+            </div>
+        </header>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border-t-4 border-orange-500">
-            <h2 class="font-bold text-lg mb-4 text-orange-600">नया सामान जोड़ें</h2>
-            <div class="grid gap-4">
-                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border p-3 rounded-xl text-sm">
-                
-                <div class="border-2 border-dashed border-gray-300 p-4 rounded-xl text-center bg-gray-50">
-                    <input type="file" id="image-input" accept="image/*" class="hidden">
-                    <button onclick="document.getElementById('image-input').click()" class="bg-white border px-4 py-2 rounded-lg text-xs font-bold shadow-sm">
-                        📷 फोटो खींचें या चुनें
-                    </button>
-                    <p id="upload-status" class="text-[10px] text-gray-500 mt-2 italic">फोटो वैकल्पिक है</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="number" id="new-price" placeholder="कीमत (₹)" class="border p-3 rounded-xl text-sm">
-                    <input type="number" id="new-stock" placeholder="स्टॉक मात्रा" class="border p-3 rounded-xl text-sm">
-                </div>
-                <button id="add-btn" onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">दुकान में अपलोड करें</button>
+        <div id="order-section" class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-blue-500 overflow-hidden transition-all">
+            <h2 class="font-bold text-lg mb-4 text-blue-600 flex items-center gap-2">
+                <i data-lucide="bell-ring" class="w-5 h-5"></i> लाइव ऑर्डर्स 
+            </h2>
+            <div id="order-list" class="space-y-4">
+                <p class="text-center text-gray-400 py-4 italic">आर्डर्स की प्रतीक्षा है...</p>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm">
-            <h2 class="font-bold text-lg mb-4">स्टॉक और सामान मैनेजमेंट</h2>
-            <div id="admin-product-list" class="space-y-6">
-                <p class="text-center text-gray-400">सामान लोड हो रहा है...</p>
+        <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border border-slate-200">
+            <h2 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="text-orange-500"></i> नया सामान अपलोड करें
+            </h2>
+            <div class="grid gap-3">
+                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
+                <select id="new-cat" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
+                    <option value="All">कैटेगरी चुनें</option>
+                    <option value="Electronics">इलेक्ट्रॉनिक्स</option>
+                    <option value="Wires">वायर और केबल</option>
+                    <option value="Cooling">कूलर और पंखे</option>
+                    <option value="Kitchen">किचन एप्लायंस</option>
+                </select>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="new-price" placeholder="कीमत (₹)" class="border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none">
+                    <input type="number" id="new-stock" placeholder="स्टॉक" class="border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none">
+                </div>
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-slate-200">
+                    <input type="file" id="image-input" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('image-input').click()" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-sm border">📷 फोटो जोड़ें</button>
+                    <span id="upload-status" class="text-[10px] text-gray-400 italic">No file</span>
+                </div>
+                <button onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg uppercase tracking-widest mt-2">दुकान में सेव करें</button>
             </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[30px] shadow-sm border border-slate-200">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-bold text-lg text-slate-800">स्टॉक लिस्ट</h2>
+                <input type="text" id="admin-search" oninput="renderProducts(this.value.toLowerCase())" placeholder="सामान खोजें..." class="border-2 border-slate-50 rounded-xl p-2 text-xs w-32 outline-none">
+            </div>
+            <div id="product-list" class="space-y-4"></div>
         </div>
     </div>
 
+    <audio id="order-alarm" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, push, set, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
             authDomain: "khatri-online.firebaseapp.com",
-            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com", // अपनी सही URL यहाँ डालें
+            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com",
             projectId: "khatri-online",
             storageBucket: "khatri-online.firebasestorage.app",
             messagingSenderId: "117940742720",
@@ -59,80 +93,126 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const storage = getStorage(app);
+        
+        let lastOrderIds = new Set();
+        let isFirstLoad = true;
+        let allProducts = {};
+        let uploadedImageUrl = "https://via.placeholder.com/150";
 
-        let uploadedImageUrl = "https://via.placeholder.com/150?text=No+Image";
-
-        // --- फोटो अपलोड ---
-        document.getElementById('image-input').onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const status = document.getElementById('upload-status');
-            status.innerText = "अपलोड हो रहा है...";
-            try {
-                const storageRef = sRef(storage, 'items/' + Date.now() + ".jpg");
-                await uploadBytes(storageRef, file);
-                uploadedImageUrl = await getDownloadURL(storageRef);
-                status.innerText = "✅ फोटो तैयार!";
-                status.style.color = "green";
-            } catch (err) { alert("फोटो एरर: " + err.message); }
+        // --- अलार्म बंद करने का फंक्शन ---
+        window.stopAlarm = () => {
+            const alarm = document.getElementById('order-alarm');
+            alarm.pause();
+            alarm.currentTime = 0;
+            document.getElementById('order-section').classList.remove('alarm-active');
+            document.getElementById('alarm-indicator').classList.add('hidden');
         };
 
-        // --- नया सामान जोड़ना ---
-        window.addNewProduct = async () => {
-            const name = document.getElementById('new-name').value;
-            const price = Number(document.getElementById('new-price').value);
-            const stock = Number(document.getElementById('new-stock').value);
+        // --- लाइव ऑर्डर मॉनिटर (Alarm Logic) ---
+        onValue(ref(db, 'orders'), (snapshot) => {
+            const orders = snapshot.val();
+            const currentIds = snapshot.exists() ? Object.keys(orders) : [];
+            
+            // चेक करें कि क्या कोई नया ID आया है
+            if (!isFirstLoad && currentIds.length > lastOrderIds.size) {
+                const alarm = document.getElementById('order-alarm');
+                alarm.loop = true;
+                alarm.play().catch(() => alert("नया ऑर्डर आया है! (Sound Blocked)"));
+                document.getElementById('order-section').classList.add('alarm-active');
+                document.getElementById('alarm-indicator').classList.remove('hidden');
+                
+                // 10 सेकंड बाद अलार्म को म्यूट करें या आप मैन्युअली डिलीट पर भी कर सकते हैं
+                setTimeout(() => { if(confirm("🚨 नया ऑर्डर मिला है! अलार्म बंद करें?")) stopAlarm(); }, 500);
+            }
 
-            if(!name || !price) return alert("नाम और कीमत भरें!");
+            lastOrderIds = new Set(currentIds);
+            isFirstLoad = false;
 
-            try {
-                const productListRef = ref(db, 'products');
-                const newProductRef = push(productListRef);
-                await set(newProductRef, { name, price, stock, image: uploadedImageUrl });
-                alert("सफल!"); location.reload();
-            } catch (e) { alert(e.message); }
-        };
-
-        // --- लिस्ट लोड और अपडेट ---
-        const productsRef = ref(db, 'products');
-        onValue(productsRef, (snapshot) => {
-            const data = snapshot.val();
+            // लिस्ट रेंडर करें
             let html = "";
-            for (let id in data) {
-                const p = data[id];
+            for (let id in orders) {
+                const o = orders[id];
                 html += `
-                    <div class="p-4 border rounded-2xl bg-slate-50 relative shadow-sm">
-                        <div class="flex gap-4 mb-4">
-                            <img src="${p.image}" class="w-16 h-16 object-contain bg-white rounded-lg border">
-                            <div class="flex-1">
-                                <input type="text" id="n-${id}" value="${p.name}" class="w-full font-bold text-sm bg-transparent border-b mb-2 outline-none">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="p-${id}" value="${p.price}" class="border rounded p-1 text-xs" title="Price">
-                                    <input type="number" id="s-${id}" value="${p.stock}" class="border rounded p-1 text-xs" title="Stock">
-                                </div>
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 relative shadow-sm">
+                        <button onclick="deleteOrder('${id}')" class="absolute right-4 top-4 text-red-400"><i data-lucide="check-circle" class="w-5 h-5"></i></button>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs uppercase">${o.customer.name.charAt(0)}</div>
+                            <div>
+                                <h3 class="font-bold text-slate-900">${o.customer.name}</h3>
+                                <a href="tel:${o.customer.phone}" class="text-blue-600 text-xs font-bold underline underline-offset-2 italic tracking-tighter">${o.customer.phone}</a>
                             </div>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <button onclick="deleteItem('${id}')" class="text-red-500 text-[10px] font-bold underline">सामान हटाएं</button>
-                            <button onclick="saveEdit('${id}')" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold">सेव करें</button>
-                        </div>
-                    </div>
-                `;
+                        <div class="text-[10px] text-slate-500 mb-2 font-medium italic truncate">${o.items.map(i => i.name).join(', ')}</div>
+                        <p class="font-black text-slate-900 text-lg">Total: ₹${o.total}</p>
+                    </div>`;
             }
-            document.getElementById('admin-product-list').innerHTML = html || "कोई सामान नहीं मिला।";
+            document.getElementById('order-list').innerHTML = html || "<p class='text-center text-gray-400 py-4'>अभी कोई ऑर्डर नहीं है।</p>";
+            lucide.createIcons();
         });
 
-        window.saveEdit = async (id) => {
-            const name = document.getElementById(`n-${id}`).value;
-            const price = Number(document.getElementById(`p-${id}`).value);
-            const stock = Number(document.getElementById(`s-${id}`).value);
-            await update(ref(db, 'products/' + id), { name, price, stock });
-            alert("अपडेट सफल!");
+        // --- बाकी पुराने फंक्शन्स (फोटो, स्टॉक, डिलीट) ---
+        document.getElementById('image-input').onchange = async (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            document.getElementById('upload-status').innerText = "Uploading...";
+            const storageRef = sRef(storage, 'items/' + Date.now());
+            await uploadBytes(storageRef, file);
+            uploadedImageUrl = await getDownloadURL(storageRef);
+            document.getElementById('upload-status').innerText = "✅ Done";
         };
 
-        window.deleteItem = async (id) => {
-            if(confirm("डिलीट करें?")) { await remove(ref(db, 'products/' + id)); }
+        window.addNewProduct = async () => {
+            const name = document.getElementById('new-name').value;
+            const cat = document.getElementById('new-cat').value;
+            const price = Number(document.getElementById('new-price').value);
+            const stock = Number(document.getElementById('new-stock').value);
+            if(!name || !price) return alert("Fill data!");
+            await push(ref(db, 'products'), { name, category: cat, price, stock, image: uploadedImageUrl });
+            alert("Saved!"); location.reload();
         };
+
+        onValue(ref(db, 'products'), (snapshot) => {
+            allProducts = snapshot.val() || {};
+            renderProducts("");
+        });
+
+        window.renderProducts = (term) => {
+            let html = "";
+            for (let id in allProducts) {
+                const p = allProducts[id];
+                if(p.name.toLowerCase().includes(term)) {
+                    html += `
+                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border shadow-sm">
+                            <img src="${p.image}" class="w-10 h-10 object-contain rounded-lg">
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold uppercase truncate w-32">${p.name}</p>
+                                <div class="flex gap-1 mt-1">
+                                    <input type="number" id="p-${id}" value="${p.price}" class="w-16 border rounded p-1 text-[10px]">
+                                    <input type="number" id="s-${id}" value="${p.stock}" class="w-12 border rounded p-1 text-[10px]">
+                                </div>
+                            </div>
+                            <button onclick="saveEdit('${id}')" class="bg-slate-900 text-white p-2 rounded-lg"><i data-lucide="save" class="w-4 h-4"></i></button>
+                        </div>`;
+                }
+            }
+            document.getElementById('product-list').innerHTML = html;
+            lucide.createIcons();
+        };
+
+        window.saveEdit = async (id) => {
+            const price = Number(document.getElementById(`p-${id}`).value);
+            const stock = Number(document.getElementById(`s-${id}`).value);
+            await update(ref(db, 'products/' + id), { price, stock });
+            alert("Updated!");
+        };
+
+        window.deleteOrder = async (id) => {
+            if(confirm("ऑर्डर पूरा हो गया? (इसे लिस्ट से हटा दिया जाएगा)")) {
+                await remove(ref(db, 'orders/' + id));
+                stopAlarm();
+            }
+        };
+
+        lucide.createIcons();
     </script>
 </body>
 </html>
