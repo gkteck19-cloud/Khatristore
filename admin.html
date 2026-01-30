@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHATRI ADMIN - Pro Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-100 pb-20 p-4 font-sans">
+
+    <div class="max-w-2xl mx-auto">
+        <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl border-b-4 border-orange-500">
+            <div>
+                <h1 class="text-xl font-black italic text-orange-400 tracking-tighter uppercase">Khatri Admin</h1>
+                <p class="text-[10px] opacity-60 uppercase font-bold tracking-widest">Category & Stock Manager</p>
+            </div>
+            <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
+        </header>
+
+        <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-orange-500">
+            <h2 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                <i data-lucide="layers"></i> कैटेगरी मैनेज करें
+            </h2>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="new-cat-name" placeholder="नई कैटेगरी का नाम" class="flex-1 border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
+                <button onclick="addCategory()" class="bg-slate-900 text-white px-6 rounded-2xl font-bold">+</button>
+            </div>
+            <div id="cat-list-admin" class="flex flex-wrap gap-2">
+                </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border border-slate-200">
+            <h2 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="text-orange-500"></i> सामान अपलोड करें
+            </h2>
+            <div class="grid gap-3">
+                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
+                <select id="prod-cat-select" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
+                    <option value="General">कैटेगरी चुनें</option>
+                </select>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="new-price" placeholder="रेट (₹)" class="border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50">
+                    <input type="number" id="new-stock" placeholder="स्टॉक" class="border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50">
+                </div>
+                <button onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg uppercase">दुकान में सेव करें</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[30px] shadow-sm border border-slate-200">
+            <h2 class="font-bold text-lg mb-4">स्टॉक मैनेजमेंट</h2>
+            <div id="product-list" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
+            authDomain: "khatri-online.firebaseapp.com",
+            databaseURL: "https://khatri-online-default-rtdb.firebaseio.com",
+            projectId: "khatri-online",
+            storageBucket: "khatri-online.firebasestorage.app",
+            messagingSenderId: "117940742720",
+            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- 1. कैटेगरी फंक्शन्स ---
+        window.addCategory = async () => {
+            const name = document.getElementById('new-cat-name').value;
+            if(!name) return;
+            await push(ref(db, 'categories'), { name });
+            document.getElementById('new-cat-name').value = "";
+        };
+
+        onValue(ref(db, 'categories'), (snapshot) => {
+            const cats = snapshot.val();
+            let html = "";
+            let options = '<option value="General">कैटेगरी चुनें</option>';
+            for(let id in cats){
+                html += `<div class="bg-slate-100 px-3 py-1 rounded-full text-xs flex items-center gap-2 border">
+                            ${cats[id].name} 
+                            <button onclick="deleteCat('${id}')" class="text-red-500 font-bold">×</button>
+                         </div>`;
+                options += `<option value="${cats[id].name}">${cats[id].name}</option>`;
+            }
+            document.getElementById('cat-list-admin').innerHTML = html;
+            document.getElementById('prod-cat-select').innerHTML = options;
+        });
+
+        window.deleteCat = async (id) => { if(confirm("कैटेगरी हटाएं?")) await remove(ref(db, 'categories/' + id)); };
+
+        // --- 2. सामान जोड़ना ---
+        window.addNewProduct = async () => {
+            const name = document.getElementById('new-name').value;
+            const cat = document.getElementById('prod-cat-select').value;
+            const price = Number(document.getElementById('new-price').value);
+            const stock = Number(document.getElementById('new-stock').value);
+            if(!name || !price) return alert("नाम और रेट भरें!");
+            await push(ref(db, 'products'), { name, category: cat, price, stock, image: "https://via.placeholder.com/150" });
+            alert("Saved!");
+        };
+
+        // --- 3. स्टॉक लिस्ट ---
+        onValue(ref(db, 'products'), (snapshot) => {
+            const products = snapshot.val();
+            let html = "";
+            for(let id in products){
+                html += `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border">
+                            <span class="text-xs font-bold">${products[id].name} (${products[id].category})</span>
+                            <button onclick="deleteProd('${id}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                         </div>`;
+            }
+            document.getElementById('product-list').innerHTML = html;
+            lucide.createIcons();
+        });
+
+        window.deleteProd = async (id) => { if(confirm("सामान हटाएं?")) await remove(ref(db, 'products/' + id)); };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
