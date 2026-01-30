@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHATRI STORE - Online Shop</title>
+    <title>KHATRI STORE - ऑनलाइन शॉपिंग</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .promo-banner-wrap { overflow: hidden; white-space: nowrap; }
         .promo-banner { display: inline-block; animation: slide 20s linear infinite; }
         @keyframes slide { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
         .active-nav { color: #f97316 !important; transform: translateY(-5px); transition: 0.3s; }
+        .cat-active { background-color: #f97316 !important; color: white !important; border-color: #f97316 !important; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-900 font-sans pb-24">
 
     <div id="offer-banner-wrap" class="hidden bg-orange-600 text-white py-2 text-[11px] font-black uppercase tracking-tighter sticky top-0 z-[110] shadow-lg">
-        <div class="promo-banner-wrap">
-            <div id="offer-text-display" class="promo-banner italic">
-                </div>
+        <div class="overflow-hidden whitespace-nowrap">
+            <div id="offer-text-display" class="promo-banner italic"></div>
         </div>
     </div>
 
@@ -30,12 +29,14 @@
         </div>
         <div class="relative text-slate-900">
             <i data-lucide="search" class="absolute left-4 top-4 text-gray-400 w-4 h-4"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value.toLowerCase())" placeholder="क्या सामान चाहिए? यहाँ खोजें..." class="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-xl outline-none text-sm font-bold border-none">
+            <input type="text" id="search-input" oninput="handleSearch(this.value.toLowerCase())" placeholder="सामान का नाम खोजें..." class="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-xl outline-none text-sm font-bold border-none">
         </div>
     </div>
 
     <div id="home-page">
-        <div id="cat-bar" class="flex gap-2 overflow-x-auto no-scrollbar px-4 my-6"></div>
+        <div id="cat-bar" class="flex gap-2 overflow-x-auto no-scrollbar px-4 my-6">
+            <button onclick="filterCat('All')" id="btn-all" class="cat-btn cat-active bg-white text-slate-900 px-5 py-2.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm border border-slate-200 uppercase italic">सभी सामान</button>
+        </div>
 
         <div class="px-4 mb-6">
             <h2 class="text-[10px] font-black uppercase mb-3 text-slate-400 flex items-center gap-2">
@@ -49,7 +50,7 @@
         </div>
     </div>
 
-    <div id="orders-page" class="hidden px-5 pt-6 animate-pulse">
+    <div id="orders-page" class="hidden px-5 pt-6">
         <h2 class="text-2xl font-black mb-6 italic uppercase tracking-tighter">आर्डर ट्रैकिंग</h2>
         <div id="order-history-list" class="space-y-4"></div>
     </div>
@@ -73,17 +74,34 @@
         </button>
     </nav>
 
-    <div id="login-modal" class="fixed inset-0 bg-black/90 z-[300] hidden flex items-center justify-center p-8 backdrop-blur-md">
-        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 text-center">
-            <h2 class="text-3xl font-black mb-2 uppercase italic tracking-tighter text-slate-900">Khatri Store</h2>
-            <p class="text-[10px] text-gray-400 mb-8 font-bold uppercase tracking-widest">आर्डर के लिए लॉगिन करें</p>
-            <input type="text" id="cust-name" placeholder="आपका नाम लिखें" class="w-full bg-slate-50 border-none p-4 rounded-2xl mb-4 outline-none text-sm font-bold">
-            <input type="tel" id="cust-phone" placeholder="मोबाइल नंबर" class="w-full bg-slate-50 border-none p-4 rounded-2xl mb-8 outline-none text-sm font-bold">
-            <button onclick="processOrder()" class="w-full bg-orange-500 text-white py-5 rounded-2xl font-black uppercase shadow-lg shadow-orange-200">आर्डर कन्फर्म करें</button>
+    <div id="cart-drawer" class="fixed inset-0 bg-black/50 z-[200] hidden flex justify-end">
+        <div class="w-80 bg-white h-full p-6 flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 class="text-lg font-black uppercase italic">My Cart</h2>
+                <button onclick="toggleCart()"><i data-lucide="x" class="text-slate-400"></i></button>
+            </div>
+            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3 no-scrollbar">
+                <p class="text-center text-gray-400 py-10 text-xs italic">कार्ट खाली है</p>
+            </div>
+            <div class="mt-auto pt-6 border-t font-black">
+                <div class="flex justify-between mb-6">
+                    <span class="text-slate-400 text-sm">TOTAL:</span>
+                    <span id="cart-total" class="text-orange-500 text-xl">₹0</span>
+                </div>
+                <button onclick="initiateOrder()" class="w-full bg-slate-900 text-white py-4 rounded-2xl shadow-lg uppercase italic">Confirm Order</button>
+            </div>
         </div>
     </div>
 
-    <div id="cart-drawer" class="fixed inset-0 bg-black/50 z-[200] hidden flex justify-end">...</div>
+    <div id="login-modal" class="fixed inset-0 bg-black/90 z-[300] hidden flex items-center justify-center p-8 backdrop-blur-md">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 text-center shadow-2xl">
+            <h2 class="text-3xl font-black mb-2 uppercase italic text-slate-900">Khatri Store</h2>
+            <p class="text-[10px] text-gray-400 mb-8 font-bold uppercase tracking-widest">आर्डर के लिए जानकारी भरें</p>
+            <input type="text" id="cust-name" placeholder="आपका नाम" class="w-full bg-slate-50 border-none p-4 rounded-2xl mb-4 outline-none text-sm font-bold">
+            <input type="tel" id="cust-phone" placeholder="मोबाइल नंबर" class="w-full bg-slate-50 border-none p-4 rounded-2xl mb-8 outline-none text-sm font-bold">
+            <button onclick="processOrder()" class="w-full bg-orange-500 text-white py-5 rounded-2xl font-black uppercase">प्रवेश करें</button>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -103,20 +121,99 @@
         const db = getDatabase(app);
         let cart = [], allProducts = {}, currentCat = "All", searchTerm = "";
 
-        // --- 📢 Admin Offer Listener ---
+        // --- 📢 ऑफर बैनर ---
         onValue(ref(db, 'storeOffer'), (snap) => {
             const data = snap.val();
             const wrap = document.getElementById('offer-banner-wrap');
             const text = document.getElementById('offer-text-display');
             if(data && data.show) {
                 wrap.classList.remove('hidden');
-                text.innerText = data.text + " • " + data.text + " • " + data.text; // Repeat for loop effect
-            } else {
-                wrap.classList.add('hidden');
-            }
+                text.innerText = data.text + " • " + data.text + " • " + data.text;
+            } else { wrap.classList.add('hidden'); }
         });
 
-        // --- Navigation ---
+        // --- 📂 कैटेगरी लोड करें ---
+        onValue(ref(db, 'cats'), (snap) => {
+            const cats = snap.val() || {};
+            let html = `<button onclick="filterCat('All')" id="btn-all" class="cat-btn cat-active bg-white text-slate-900 px-5 py-2.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm border border-slate-200 uppercase italic">सभी सामान</button>`;
+            for(let id in cats) {
+                html += `<button onclick="filterCat('${cats[id].name}')" class="cat-btn bg-white text-slate-900 px-5 py-2.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm border border-slate-200 uppercase italic">${cats[id].name}</button>`;
+            }
+            document.getElementById('cat-bar').innerHTML = html;
+        });
+
+        // --- 🛒 सामान लोड करें ---
+        onValue(ref(db, 'products'), (snap) => {
+            allProducts = snap.val() || {};
+            renderProducts();
+        });
+
+        window.filterCat = (cat) => {
+            currentCat = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('cat-active'));
+            if(event) event.target.classList.add('cat-active');
+            renderProducts();
+        };
+
+        window.handleSearch = (v) => { searchTerm = v; renderProducts(); };
+
+        function renderProducts() {
+            let html = "", bestHtml = "";
+            for (let id in allProducts) {
+                const p = allProducts[id];
+                if (p.name.toLowerCase().includes(searchTerm) && (currentCat === "All" || p.category === currentCat)) {
+                    const isOut = p.stock <= 0;
+                    const card = `<div class="bg-white p-3 rounded-3xl shadow-sm border border-slate-50 overflow-hidden">
+                        <img src="${p.image}" class="h-28 w-full object-contain mb-3 ${isOut ? 'grayscale opacity-50' : ''}">
+                        <h3 class="font-bold text-[10px] uppercase mb-1 line-clamp-2 h-7 italic leading-tight">${p.name}</h3>
+                        <p class="font-black text-sm mb-3 text-slate-900">₹${p.price}</p>
+                        <button onclick="${isOut ? '' : `addToCart('${id}', '${p.name}', ${p.price})`}" class="w-full py-2.5 rounded-xl text-[9px] font-black uppercase ${isOut ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white active:bg-orange-500 shadow-lg'}">${isOut ? 'Stock Out' : 'Buy Now'}</button>
+                    </div>`;
+                    html += card;
+                    if(p.stock < 5 && p.stock > 0) bestHtml += card.replace('h-28', 'h-20').replace('rounded-3xl', 'min-w-[140px]');
+                }
+            }
+            document.getElementById('product-grid').innerHTML = html || "<p class='col-span-2 text-center text-gray-400 py-10'>कोई सामान नहीं मिला</p>";
+            document.getElementById('best-sellers').innerHTML = bestHtml;
+            lucide.createIcons();
+        }
+
+        // --- 🛒 कार्ट फंक्शन्स ---
+        window.toggleCart = () => {
+            document.getElementById('cart-drawer').classList.toggle('hidden');
+            updateCartUI();
+        };
+
+        window.addToCart = (id, n, p) => {
+            cart.push({name: n, price: p});
+            updateCartUI();
+            const btn = event.target;
+            btn.innerText = "जोड़ दिया!";
+            setTimeout(() => btn.innerText = "Buy Now", 800);
+        };
+
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.length;
+            const list = document.getElementById('cart-items');
+            let total = 0;
+            if(cart.length === 0) {
+                list.innerHTML = "<p class='text-center text-gray-400 py-10 text-xs italic'>कार्ट खाली है</p>";
+            } else {
+                list.innerHTML = cart.map((i, idx) => {
+                    total += i.price;
+                    return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border">
+                        <div class="text-[10px] font-bold uppercase italic"><span>${i.name}</span><br><b class="text-orange-500">₹${i.price}</b></div>
+                        <button onclick="removeFromCart(${idx})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>`;
+                }).join('');
+            }
+            document.getElementById('cart-total').innerText = `₹${total}`;
+            lucide.createIcons();
+        }
+
+        window.removeFromCart = (idx) => { cart.splice(idx, 1); updateCartUI(); };
+
+        // --- 🚚 आर्डर और पेजेज ---
         window.showPage = (page) => {
             document.getElementById('home-page').classList.toggle('hidden', page !== 'home');
             document.getElementById('orders-page').classList.toggle('hidden', page !== 'orders');
@@ -125,75 +222,36 @@
             if(page === 'orders') fetchMyOrders();
         };
 
-        // --- Data Logic (Products/Orders) ---
-        onValue(ref(db, 'products'), (snap) => {
-            allProducts = snap.val() || {};
-            renderProducts();
-        });
-
-        function renderProducts() {
-            let html = "", bestHtml = "";
-            for (let id in allProducts) {
-                const p = allProducts[id];
-                if (p.name.toLowerCase().includes(searchTerm) && (currentCat === "All" || p.category === currentCat)) {
-                    const isOut = p.stock <= 0;
-                    const card = `
-                        <div class="bg-white p-3 rounded-3xl shadow-sm border border-slate-50 relative overflow-hidden">
-                            <img src="${p.image}" class="h-28 w-full object-contain mb-3 ${isOut ? 'grayscale opacity-50' : ''}">
-                            <h3 class="font-bold text-[10px] uppercase mb-1 line-clamp-2 h-7 italic leading-tight">${p.name}</h3>
-                            <p class="font-black text-sm mb-3">₹${p.price}</p>
-                            <button onclick="${isOut ? '' : `addToCart('${id}', '${p.name}', ${p.price})`}" 
-                                class="w-full py-2.5 rounded-xl text-[9px] font-black uppercase ${isOut ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white active:bg-orange-500'}">
-                                ${isOut ? 'Stock Out' : 'Buy Now'}
-                            </button>
-                        </div>`;
-                    html += card;
-                    if(p.stock < 5 && p.stock > 0) bestHtml += card.replace('h-28', 'h-20').replace('rounded-3xl', 'min-w-[140px]');
-                }
-            }
-            document.getElementById('product-grid').innerHTML = html || "<p class='col-span-2 text-center text-gray-400 py-10'>No items found</p>";
-            document.getElementById('best-sellers').innerHTML = bestHtml;
-            lucide.createIcons();
-        }
-
-        // --- Fetch Orders (Tracking) ---
         function fetchMyOrders() {
             const user = JSON.parse(localStorage.getItem('khatri_user'));
             if(!user) return document.getElementById('login-modal').classList.remove('hidden');
-            
             onValue(ref(db, 'orders'), (snap) => {
                 const orders = snap.val() || {};
                 let html = "";
                 for(let id in orders) {
                     if(orders[id].customer.phone === user.phone) {
-                        const status = orders[id].status || 'New';
-                        html += `
-                            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-                                <div class="flex justify-between mb-2">
-                                    <span class="text-[10px] font-black uppercase text-slate-400 italic">Order ID: ...${id.slice(-5)}</span>
-                                    <span class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-[9px] font-black uppercase">${status}</span>
-                                </div>
-                                <p class="text-xs font-bold truncate">${orders[id].items.map(i=>i.name).join(', ')}</p>
-                                <div class="mt-3 text-lg font-black">₹${orders[id].total}</div>
-                            </div>`;
+                        html += `<div class="bg-white p-5 rounded-3xl border mb-3"><div class="flex justify-between mb-2 font-bold text-[10px] uppercase"><span>ID: ...${id.slice(-5)}</span><span class="text-orange-500">${orders[id].status || 'New'}</span></div><p class="text-xs font-bold italic">${orders[id].items.map(i=>i.name).join(', ')}</p><p class="mt-2 font-black">₹${orders[id].total}</p></div>`;
                     }
                 }
-                document.getElementById('order-history-list').innerHTML = html || "<p class='text-center py-10 opacity-30'>NO HISTORY</p>";
+                document.getElementById('order-history-list').innerHTML = html || "<p class='text-center py-10 opacity-30'>इतिहास खाली है</p>";
             });
         }
 
-        // [Cart and Search logic same as before...]
-        window.handleSearch = (v) => { searchTerm = v; renderProducts(); };
-        window.addToCart = (id, n, p) => { cart.push({name: n, price: p}); updateCart(); };
-        window.toggleCart = () => document.getElementById('cart-drawer').classList.toggle('hidden');
-        function updateCart() {
-            document.getElementById('cart-count').innerText = cart.length;
-            let total = 0;
-            document.getElementById('cart-items').innerHTML = cart.map(i => { total += i.price; return `<div class="p-3 bg-slate-50 rounded-xl flex justify-between text-xs font-bold"><span>${i.name}</span><b>₹${i.price}</b></div>` }).join('');
-            document.getElementById('cart-total').innerText = `₹${total}`;
-        }
+        window.initiateOrder = () => { if(cart.length > 0) { if(localStorage.getItem('khatri_user')) processOrder(); else document.getElementById('login-modal').classList.remove('hidden'); } };
 
-        window.logout = () => { if(confirm("Exit Shop?")) { localStorage.clear(); location.reload(); } };
+        window.processOrder = async () => {
+            let user = JSON.parse(localStorage.getItem('khatri_user'));
+            if(!user) {
+                const n = document.getElementById('cust-name').value, p = document.getElementById('cust-phone').value;
+                if(!n || p.length < 10) return alert("सही जानकारी भरें");
+                user = {name: n, phone: p}; localStorage.setItem('khatri_user', JSON.stringify(user));
+            }
+            await push(ref(db, 'orders'), { customer: user, items: cart, total: cart.reduce((s,i)=>s+i.price,0), createdAt: Date.now(), status: 'New' });
+            alert("सफल! आर्डर खत्री स्टोर पहुँच गया है।");
+            cart = []; updateCartUI(); toggleCart(); document.getElementById('login-modal').classList.add('hidden');
+        };
+
+        window.logout = () => { if(confirm("बाहर निकलें?")) { localStorage.clear(); location.reload(); } };
 
         lucide.createIcons();
     </script>
