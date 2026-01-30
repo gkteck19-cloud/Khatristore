@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHATRI ADMIN - बिलिंग सिस्टम</title>
+    <title>KHATRI ADMIN - बिल और स्टेटस</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -12,8 +12,6 @@
             #bill-template, #bill-template * { visibility: visible; }
             #bill-template { position: absolute; left: 0; top: 0; width: 100%; }
         }
-        .alarm-active { animation: pulse 1s infinite; border: 4px solid red !important; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="bg-slate-100 pb-20 p-4 font-sans">
@@ -22,23 +20,18 @@
         <header class="flex justify-between items-center mb-6 bg-slate-900 text-white p-5 rounded-[25px] shadow-xl">
             <div>
                 <h1 class="text-xl font-black italic text-orange-400 tracking-tighter uppercase">Khatri Admin</h1>
-                <p class="text-[10px] opacity-60 uppercase font-bold">Billing & Stock Control</p>
+                <p class="text-[10px] opacity-60 uppercase font-bold">Status & Billing</p>
             </div>
             <button onclick="location.reload()" class="bg-slate-800 p-2 rounded-full"><i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i></button>
         </header>
 
-        <div id="order-section" class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-blue-600">
+        <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border-l-8 border-blue-600">
             <h2 class="font-bold text-lg mb-4 text-blue-600 flex items-center gap-2">
-                <i data-lucide="file-text"></i> नए ऑर्डर्स और बिलिंग
+                <i data-lucide="list-checks"></i> लाइव ऑर्डर्स मैनेजमेंट
             </h2>
-            <div id="order-list" class="space-y-4">
-                <p class="text-center text-gray-400 italic py-4 text-sm">ऑर्डर्स लोड हो रहे हैं...</p>
+            <div id="order-list" class="space-y-6">
+                <p class="text-center text-gray-400 italic py-4">लोड हो रहा है...</p>
             </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-[30px] shadow-sm border border-slate-200">
-             <h2 class="font-bold text-lg mb-4 text-slate-800">स्टॉक मैनेजमेंट</h2>
-             <div id="product-list" class="space-y-4 text-xs"></div>
         </div>
     </div>
 
@@ -57,24 +50,19 @@
                 <p><strong>तारीख:</strong> <span id="bill-date"></span></p>
             </div>
         </div>
-        <table class="w-full text-left mb-10 border-collapse">
+        <table class="w-full text-left mb-10">
             <thead>
-                <tr class="border-b-2 border-slate-300 text-sm">
+                <tr class="border-b-2 border-slate-300">
                     <th class="py-2">सामान</th>
                     <th class="py-2 text-right">कीमत</th>
                 </tr>
             </thead>
-            <tbody id="bill-items" class="text-sm"></tbody>
+            <tbody id="bill-items"></tbody>
         </table>
         <div class="text-right border-t-2 border-slate-900 pt-4">
-            <p class="text-2xl font-black uppercase">कुल राशि: ₹<span id="bill-total"></span></p>
-        </div>
-        <div class="mt-20 text-center text-[10px] text-gray-400">
-            * यह एक कच्चा अनुमानित बिल है *
+            <p class="text-2xl font-black">कुल राशि: ₹<span id="bill-total"></span></p>
         </div>
     </div>
-
-    <audio id="order-alarm" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3"></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -94,90 +82,57 @@
         const db = getDatabase(app);
         let currentOrders = {};
 
-        // --- ऑर्डर्स लोड और अलार्म ---
         onValue(ref(db, 'orders'), (snapshot) => {
             currentOrders = snapshot.val() || {};
             let html = "";
             for (let id in currentOrders) {
                 const o = currentOrders[id];
+                const statusColor = o.status === 'Packing' ? 'bg-orange-100 text-orange-600' : 
+                                  o.status === 'Done' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600';
+                
                 html += `
-                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-sm">
-                        <div class="flex justify-between items-start mb-2">
+                    <div class="bg-white p-4 rounded-2xl border-2 border-slate-50 shadow-sm relative">
+                        <div class="flex justify-between items-start mb-4">
                             <div>
-                                <h3 class="font-black text-slate-900 uppercase text-sm">${o.customer.name}</h3>
-                                <p class="text-blue-600 font-bold text-xs italic">${o.customer.phone}</p>
+                                <h3 class="font-black text-slate-900 uppercase">${o.customer.name}</h3>
+                                <p class="text-blue-500 font-bold text-xs">${o.customer.phone}</p>
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="printBill('${id}')" class="bg-white p-2 rounded-lg border shadow-sm text-blue-600"><i data-lucide="printer" class="w-4 h-4"></i></button>
-                                <button onclick="deleteOrder('${id}')" class="bg-white p-2 rounded-lg border shadow-sm text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            <span class="text-[10px] font-black px-2 py-1 rounded-lg ${statusColor}">${o.status || 'New'}</span>
+                        </div>
+                        
+                        <div class="text-[11px] text-slate-500 mb-4 bg-slate-50 p-2 rounded-xl italic">
+                            ${o.items.map(i => i.name).join(', ')}
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 border-t pt-4">
+                            <div class="flex gap-1">
+                                <button onclick="updateStatus('${id}', 'Packing')" class="bg-orange-500 text-white p-2 rounded-lg" title="Packing"><i data-lucide="package" class="w-4 h-4"></i></button>
+                                <button onclick="updateStatus('${id}', 'Done')" class="bg-green-600 text-white p-2 rounded-lg" title="Done"><i data-lucide="check" class="w-4 h-4"></i></button>
+                                <button onclick="printBill('${id}')" class="bg-slate-900 text-white p-2 rounded-lg" title="Print Bill"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-400">Total Bill</p>
+                                <p class="font-black text-xl text-slate-900">₹${o.total}</p>
                             </div>
                         </div>
-                        <p class="text-[10px] text-slate-500 truncate mb-2">${o.items.map(i => i.name).join(', ')}</p>
-                        <p class="font-bold text-lg">₹${o.total}</p>
+                        <button onclick="deleteOrder('${id}')" class="absolute -top-2 -right-2 bg-red-100 text-red-500 rounded-full p-1 border border-red-200"><i data-lucide="x" class="w-3 h-3"></i></button>
                     </div>`;
             }
             document.getElementById('order-list').innerHTML = html || "<p class='text-center py-4 text-gray-400'>कोई ऑर्डर नहीं है।</p>";
             lucide.createIcons();
         });
 
-        // --- बिल प्रिंट फंक्शन ---
+        window.updateStatus = async (id, newStatus) => {
+            await update(ref(db, 'orders/' + id), { status: newStatus });
+        };
+
         window.printBill = (id) => {
             const order = currentOrders[id];
             document.getElementById('bill-cust-name').innerText = order.customer.name;
             document.getElementById('bill-cust-phone').innerText = order.customer.phone;
             document.getElementById('bill-date').innerText = new Date().toLocaleDateString('hi-IN');
-            document.getElementById('bill-total').innerText = order.total;
-
-            let itemsHtml = "";
-            order.items.forEach(item => {
-                itemsHtml += `<tr><td class="py-2 border-b border-dotted uppercase">${item.name}</td><td class="py-2 border-b border-dotted text-right font-bold">₹${item.price}</td></tr>`;
-            });
-            document.getElementById('bill-items').innerHTML = itemsHtml;
-
-            window.print();
-        };
-
-        window.deleteOrder = async (id) => { if(confirm("ऑर्डर डिलीट करें?")) await remove(ref(db, 'orders/' + id)); };
-        
-        lucide.createIcons();
-    </script>
-</body>
-</html>
-                <p class="text-center text-gray-400 py-4 italic">आर्डर्स की प्रतीक्षा है...</p>
-            </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-[30px] shadow-sm mb-8 border border-slate-200">
-            <h2 class="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
-                <i data-lucide="plus-circle" class="text-orange-500"></i> नया सामान अपलोड करें
-            </h2>
-            <div class="grid gap-3">
-                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
-                <select id="new-cat" class="w-full border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none focus:border-orange-500">
-                    <option value="All">कैटेगरी चुनें</option>
-                    <option value="Electronics">इलेक्ट्रॉनिक्स</option>
-                    <option value="Wires">वायर और केबल</option>
-                    <option value="Cooling">कूलर और पंखे</option>
-                    <option value="Kitchen">किचन एप्लायंस</option>
-                </select>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="number" id="new-price" placeholder="कीमत (₹)" class="border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none">
-                    <input type="number" id="new-stock" placeholder="स्टॉक" class="border-2 border-slate-50 p-3 rounded-2xl text-sm bg-slate-50 outline-none">
-                </div>
-                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-slate-200">
-                    <input type="file" id="image-input" accept="image/*" class="hidden">
-                    <button onclick="document.getElementById('image-input').click()" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-sm border">📷 फोटो जोड़ें</button>
-                    <span id="upload-status" class="text-[10px] text-gray-400 italic">No file</span>
-                </div>
-                <button onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg uppercase tracking-widest mt-2">दुकान में सेव करें</button>
-            </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-[30px] shadow-sm border border-slate-200">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="font-bold text-lg text-slate-800">स्टॉक लिस्ट</h2>
-                <input type="text" id="admin-search" oninput="renderProducts(this.value.toLowerCase())" placeholder="सामान खोजें..." class="border-2 border-slate-50 rounded-xl p-2 text-xs w-32 outline-none">
-            </div>
+            document.getElementById('bill
+v>
             <div id="product-list" class="space-y-4"></div>
         </div>
     </div>
