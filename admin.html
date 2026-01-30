@@ -3,32 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khatri Admin - स्टॉक मैनेजमेंट</title>
+    <title>Khatri Admin - माँ भगवती इलेक्ट्रिकल्स</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-gray-100 p-4">
+<body class="bg-gray-100 pb-20">
 
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-2xl font-black mb-6 border-b pb-2">📦 एडमिन पैनल (Khatri Store)</h1>
+    <div class="max-w-4xl mx-auto p-4">
+        <h1 class="text-2xl font-black mb-6 border-b pb-2 flex justify-between items-center">
+            <span>📦 एडमिन पैनल</span>
+            <span class="text-xs bg-slate-800 text-white px-3 py-1 rounded-full italic">Khatri Store</span>
+        </h1>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border-t-4 border-orange-500">
+            <h2 class="font-bold text-lg mb-4 text-orange-600">नया सामान दुकान में जोड़ें</h2>
+            <div class="grid gap-3">
+                <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border p-2 rounded-lg text-sm">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="new-price" placeholder="कीमत (₹)" class="border p-2 rounded-lg text-sm">
+                    <input type="number" id="new-stock" placeholder="स्टॉक मात्रा" class="border p-2 rounded-lg text-sm">
+                </div>
+                <input type="text" id="new-image" placeholder="फोटो लिंक (URL)" class="w-full border p-2 rounded-lg text-sm">
+                <button onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">Add Product</button>
+            </div>
+        </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm mb-8">
-            <h2 class="font-bold text-lg mb-4 text-orange-600">स्टॉक और कीमत बदलें</h2>
+            <h2 class="font-bold text-lg mb-4 text-slate-800">स्टॉक और कीमत बदलें</h2>
             <div id="admin-product-list" class="space-y-4">
-                <p class="animate-pulse text-gray-400">सामान लोड हो रहा है...</p>
+                <p class="animate-pulse text-gray-400 text-center">लोड हो रहा है...</p>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm">
             <h2 class="font-bold text-lg mb-4 text-blue-600">नए ऑर्डर्स</h2>
             <div id="admin-order-list" class="space-y-4 text-sm">
-                <p class="text-gray-400">ऑर्डर्स लोड हो रहे हैं...</p>
+                <p class="text-gray-400 text-center">ऑर्डर्स लोड हो रहे हैं...</p>
             </div>
         </div>
     </div>
 
+    <audio id="orderSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
@@ -42,19 +63,37 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 1. स्टॉक अपडेट करने का फंक्शन ---
+        // --- 1. नया प्रोडक्ट जोड़ना ---
+        window.addNewProduct = async () => {
+            const name = document.getElementById('new-name').value;
+            const price = Number(document.getElementById('new-price').value);
+            const stock = Number(document.getElementById('new-stock').value);
+            const image = document.getElementById('new-image').value;
+
+            if(!name || !price) return alert("नाम और कीमत जरूरी है!");
+
+            try {
+                await addDoc(collection(db, "products"), {
+                    name, price, stock, image, createdAt: serverTimestamp()
+                });
+                alert("सामान जुड़ गया!");
+                location.reload();
+            } catch (e) { alert(e.message); }
+        };
+
+        // --- 2. स्टॉक लोड और लाइव ऑर्डर्स ---
         async function loadAdminData() {
-            // प्रोडक्ट्स लोड करें
+            // प्रोडक्ट्स
             const pSnapshot = await getDocs(collection(db, "products"));
             let pHtml = "";
             pSnapshot.forEach((pDoc) => {
                 const p = pDoc.data();
                 pHtml += `
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-3 border rounded-xl gap-2">
-                        <span class="font-bold text-sm w-40">${p.name}</span>
-                        <div class="flex gap-2">
-                            <input type="number" id="price-${pDoc.id}" value="${p.price}" class="w-20 border p-1 rounded text-sm" placeholder="Price">
-                            <input type="number" id="stock-${pDoc.id}" value="${p.stock}" class="w-16 border p-1 rounded text-sm" placeholder="Stock">
+                    <div class="flex flex-col md:flex-row justify-between items-start p-3 border rounded-xl gap-2 bg-slate-50">
+                        <span class="font-bold text-xs w-full md:w-40">${p.name}</span>
+                        <div class="flex gap-2 w-full justify-end">
+                            <input type="number" id="price-${pDoc.id}" value="${p.price}" class="w-16 border p-1 rounded text-xs">
+                            <input type="number" id="stock-${pDoc.id}" value="${p.stock}" class="w-12 border p-1 rounded text-xs">
                             <button onclick="updateProduct('${pDoc.id}')" class="bg-slate-900 text-white px-3 py-1 rounded text-xs">Save</button>
                         </div>
                     </div>
@@ -62,35 +101,37 @@
             });
             document.getElementById('admin-product-list').innerHTML = pHtml;
 
-            // ऑर्डर्स लोड करें
-            const oSnapshot = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")));
-            let oHtml = "";
-            oSnapshot.forEach((oDoc) => {
-                const o = oDoc.data();
-                oHtml += `
-                    <div class="p-3 bg-gray-50 rounded-xl border-l-4 border-blue-500">
-                        <p><b>ग्राहक:</b> ${o.phone}</p>
-                        <p><b>सामान:</b> ${o.items.map(i => i.name).join(', ')}</p>
-                        <p class="text-blue-700 font-bold">कुल: ₹${o.total}</p>
-                        <p class="text-[10px] text-gray-400">${o.createdAt?.toDate().toLocaleString() || ''}</p>
-                    </div>
-                `;
+            // ऑर्डर्स (Live Update)
+            const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            onSnapshot(q, (snapshot) => {
+                let oHtml = "";
+                let index = 0;
+                snapshot.forEach((oDoc) => {
+                    const o = oDoc.data();
+                    if(index === 0 && snapshot.metadata.hasPendingWrites === false) {
+                        // नए आर्डर पर घंटी बजाएं (ब्राउज़र परमिशन के बाद)
+                        document.getElementById('orderSound').play().catch(e => {});
+                    }
+                    oHtml += `
+                        <div class="p-3 bg-white rounded-xl border-l-4 border-blue-500 shadow-sm">
+                            <p class="text-blue-700 font-bold">आर्डर: ₹${o.total}</p>
+                            <p><b>फोन:</b> ${o.phone}</p>
+                            <p class="text-gray-600"><b>आइटम्स:</b> ${o.items.map(i => i.name).join(', ')}</p>
+                        </div>
+                    `;
+                    index++;
+                });
+                document.getElementById('admin-order-list').innerHTML = oHtml || "कोई आर्डर नहीं है।";
             });
-            document.getElementById('admin-order-list').innerHTML = oHtml || "कोई आर्डर नहीं है।";
         }
 
-        // --- 2. डेटा अपडेट करना ---
         window.updateProduct = async (id) => {
-            const newPrice = Number(document.getElementById(`price-${id}`).value);
-            const newStock = Number(document.getElementById(`stock-${id}`).value);
-            
+            const price = Number(document.getElementById(`price-${id}`).value);
+            const stock = Number(document.getElementById(`stock-${id}`).value);
             try {
-                await updateDoc(doc(db, "products", id), {
-                    price: newPrice,
-                    stock: newStock
-                });
-                alert("अपडेट सफल!");
-            } catch (e) { alert("Error: " + e.message); }
+                await updateDoc(doc(db, "products", id), { price, stock });
+                alert("सेव हो गया!");
+            } catch (e) { alert(e.message); }
         };
 
         loadAdminData();
