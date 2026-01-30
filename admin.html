@@ -3,129 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khatri Admin - माँ भगवती इलेक्ट्रिकल्स</title>
+    <title>Khatri Admin - स्टॉक मैनेजमेंट</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-gray-100 pb-20 p-4">
 
     <div class="max-w-2xl mx-auto">
-        <h1 class="text-2xl font-black mb-6 bg-slate-900 text-white p-4 rounded-2xl shadow-lg">📦 एडमिन ऐप</h1>
+        <h1 class="text-2xl font-black mb-6 bg-slate-900 text-white p-4 rounded-2xl shadow-lg flex justify-between">
+            <span>📦 एडमिन पैनल</span>
+            <button onclick="location.reload()" class="text-xs bg-slate-700 px-3 py-1 rounded-lg">रिफ़्रेश</button>
+        </h1>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border-t-4 border-orange-500">
-            <h2 class="font-bold text-lg mb-4 text-orange-600">नया सामान जोड़ें</h2>
-            <div class="grid gap-4">
+            <h2 class="font-bold text-lg mb-4 text-orange-600">नया सामान जोड़ें (फोटो वैकल्पिक है)</h2>
+            <div class="grid gap-3">
                 <input type="text" id="new-name" placeholder="सामान का नाम" class="w-full border p-3 rounded-xl text-sm">
                 
-                <div class="border-2 border-dashed border-gray-300 p-4 rounded-xl text-center">
+                <div class="border-2 border-dashed border-gray-300 p-4 rounded-xl text-center bg-gray-50">
                     <input type="file" id="image-input" accept="image/*" class="hidden">
-                    <button onclick="document.getElementById('image-input').click()" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold">
-                        📷 फोटो चुनें या खींचें
+                    <button onclick="document.getElementById('image-input').click()" class="bg-white border px-4 py-2 rounded-lg text-xs font-bold shadow-sm">
+                        📷 फोटो चुनें (Optional)
                     </button>
-                    <p id="upload-status" class="text-[10px] text-gray-500 mt-2">कोई फोटो नहीं चुनी गई</p>
+                    <p id="upload-status" class="text-[10px] text-gray-500 mt-2 italic">फोटो नहीं है तो खाली छोड़ें</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <input type="number" id="new-price" placeholder="कीमत (₹)" class="border p-3 rounded-xl text-sm">
-                    <input type="number" id="new-stock" placeholder="स्टॉक" class="border p-3 rounded-xl text-sm">
+                    <input type="number" id="new-stock" placeholder="स्टॉक मात्रा" class="border p-3 rounded-xl text-sm">
                 </div>
-                
-                <button id="add-btn" onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">
-                    दुकान में अपलोड करें
-                </button>
-            </div>
-        </div>
-
-        <div id="admin-product-list" class="space-y-4">
-            <p class="text-center text-gray-400">सामान लोड हो रहा है...</p>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
-            authDomain: "khatri-online.firebaseapp.com",
-            projectId: "khatri-online",
-            storageBucket: "khatri-online.appspot.com", // यहाँ अपना स्टोरेज बकेट चेक करें
-            messagingSenderId: "117940742720",
-            appId: "1:117940742720:web:5d7dce7c186199e9fbcda5"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-
-        let uploadedImageUrl = "";
-
-        // --- 1. फोटो अपलोड करने का फंक्शन ---
-        document.getElementById('image-input').onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const status = document.getElementById('upload-status');
-            status.innerText = "अपलोड हो रहा है... कृपया रुकें";
-            status.className = "text-[10px] text-orange-500 mt-2 animate-pulse";
-
-            try {
-                const storageRef = ref(storage, 'products/' + Date.now() + "_" + file.name);
-                await uploadBytes(storageRef, file);
-                uploadedImageUrl = await getDownloadURL(storageRef);
-                
-                status.innerText = "✅ फोटो तैयार है!";
-                status.className = "text-[10px] text-green-600 mt-2 font-bold";
-            } catch (error) {
-                alert("फोटो अपलोड फेल: " + error.message);
-                status.innerText = "❌ एरर आई";
-            }
-        };
-
-        // --- 2. नया प्रोडक्ट सेव करना ---
-        window.addNewProduct = async () => {
-            const name = document.getElementById('new-name').value;
-            const price = Number(document.getElementById('new-price').value);
-            const stock = Number(document.getElementById('new-stock').value);
-
-            if (!name || !price || !uploadedImageUrl) {
-                return alert("कृपया नाम, कीमत और फोटो तीनों भरें!");
-            }
-
-            const btn = document.getElementById('add-btn');
-            btn.innerText = "सेव हो रहा है...";
-            btn.disabled = true;
-
-            try {
-                await addDoc(collection(db, "products"), {
-                    name, price, stock, image: uploadedImageUrl, createdAt: serverTimestamp()
-                });
-                alert("सामान दुकान में जुड़ गया है!");
-                location.reload();
-            } catch (e) {
-                alert(e.message);
-                btn.disabled = false;
-            }
-        };
-    </script>
-</body>
-</html>
+                <button id="add-btn" onclick="addNewProduct()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">दुकान में अपलोड करें</button>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm">
-            <h2 class="font-bold text-lg mb-4 text-blue-600">नए ऑर्डर्स</h2>
-            <div id="admin-order-list" class="space-y-4 text-sm">
-                <p class="text-gray-400 text-center">ऑर्डर्स लोड हो रहे हैं...</p>
+            <h2 class="font-bold text-lg mb-4">स्टॉक और फोटो मैनेजमेंट</h2>
+            <div id="admin-product-list" class="space-y-6">
+                <p class="text-center text-gray-400">लोड हो रहा है...</p>
             </div>
         </div>
     </div>
 
-    <audio id="orderSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBhNDgsAtOsxdfNGfTEqbuQoYgbtTjUSVo",
@@ -138,79 +60,61 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
-        // --- 1. नया प्रोडक्ट जोड़ना ---
+        let tempImageUrl = "";
+        const NO_IMAGE = "https://via.placeholder.com/150?text=No+Image";
+
+        // --- फोटो अपलोड फंक्शन ---
+        document.getElementById('image-input').onchange = (e) => handleUpload(e, 'upload-status');
+
+        async function handleUpload(e, statusId) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const status = document.getElementById(statusId);
+            status.innerText = "अपलोडिंग...";
+            try {
+                const sRef = ref(storage, 'items/' + Date.now() + ".jpg");
+                await uploadBytes(sRef, file);
+                tempImageUrl = await getDownloadURL(sRef);
+                status.innerText = "✅ फोटो तैयार!";
+                status.style.color = "green";
+            } catch (err) { alert("Error: " + err.message); }
+        }
+
+        // --- नया सामान जोड़ना ---
         window.addNewProduct = async () => {
             const name = document.getElementById('new-name').value;
             const price = Number(document.getElementById('new-price').value);
             const stock = Number(document.getElementById('new-stock').value);
-            const image = document.getElementById('new-image').value;
+            const image = tempImageUrl || NO_IMAGE;
 
-            if(!name || !price) return alert("नाम और कीमत जरूरी है!");
+            if(!name || !price) return alert("नाम और कीमत भरें!");
 
             try {
-                await addDoc(collection(db, "products"), {
-                    name, price, stock, image, createdAt: serverTimestamp()
-                });
-                alert("सामान जुड़ गया!");
-                location.reload();
+                await addDoc(collection(db, "products"), { name, price, stock, image, createdAt: serverTimestamp() });
+                alert("सफल!"); location.reload();
             } catch (e) { alert(e.message); }
         };
 
-        // --- 2. स्टॉक लोड और लाइव ऑर्डर्स ---
-        async function loadAdminData() {
-            // प्रोडक्ट्स
-            const pSnapshot = await getDocs(collection(db, "products"));
-            let pHtml = "";
-            pSnapshot.forEach((pDoc) => {
+        // --- डेटा लोड और एडिट/डिलीट ---
+        async function loadAdmin() {
+            const snap = await getDocs(collection(db, "products"));
+            let html = "";
+            snap.forEach((pDoc) => {
                 const p = pDoc.data();
-                pHtml += `
-                    <div class="flex flex-col md:flex-row justify-between items-start p-3 border rounded-xl gap-2 bg-slate-50">
-                        <span class="font-bold text-xs w-full md:w-40">${p.name}</span>
-                        <div class="flex gap-2 w-full justify-end">
-                            <input type="number" id="price-${pDoc.id}" value="${p.price}" class="w-16 border p-1 rounded text-xs">
-                            <input type="number" id="stock-${pDoc.id}" value="${p.stock}" class="w-12 border p-1 rounded text-xs">
-                            <button onclick="updateProduct('${pDoc.id}')" class="bg-slate-900 text-white px-3 py-1 rounded text-xs">Save</button>
+                html += `
+                    <div class="p-4 border rounded-2xl bg-slate-50 relative">
+                        <div class="flex gap-4 mb-4">
+                            <img src="${p.image}" class="w-20 h-20 object-contain bg-white rounded-lg border">
+                            <div class="flex-1">
+                                <input type="text" id="name-${pDoc.id}" value="${p.name}" class="w-full font-bold text-sm border-b bg-transparent outline-none">
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <input type="number" id="p-${pDoc.id}" value="${p.price}" class="border rounded p-1 text-xs">
+                                    <input type="number" id="s-${pDoc.id}" value="${p.stock}" class="border rounded p-1 text-xs">
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
-            document.getElementById('admin-product-list').innerHTML = pHtml;
-
-            // ऑर्डर्स (Live Update)
-            const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-            onSnapshot(q, (snapshot) => {
-                let oHtml = "";
-                let index = 0;
-                snapshot.forEach((oDoc) => {
-                    const o = oDoc.data();
-                    if(index === 0 && snapshot.metadata.hasPendingWrites === false) {
-                        // नए आर्डर पर घंटी बजाएं (ब्राउज़र परमिशन के बाद)
-                        document.getElementById('orderSound').play().catch(e => {});
-                    }
-                    oHtml += `
-                        <div class="p-3 bg-white rounded-xl border-l-4 border-blue-500 shadow-sm">
-                            <p class="text-blue-700 font-bold">आर्डर: ₹${o.total}</p>
-                            <p><b>फोन:</b> ${o.phone}</p>
-                            <p class="text-gray-600"><b>आइटम्स:</b> ${o.items.map(i => i.name).join(', ')}</p>
-                        </div>
-                    `;
-                    index++;
-                });
-                document.getElementById('admin-order-list').innerHTML = oHtml || "कोई आर्डर नहीं है।";
-            });
-        }
-
-        window.updateProduct = async (id) => {
-            const price = Number(document.getElementById(`price-${id}`).value);
-            const stock = Number(document.getElementById(`stock-${id}`).value);
-            try {
-                await updateDoc(doc(db, "products", id), { price, stock });
-                alert("सेव हो गया!");
-            } catch (e) { alert(e.message); }
-        };
-
-        loadAdminData();
-    </script>
-</body>
-</html>
+                        <div class="flex justify-between gap-2">
+                            <button onclick="deleteItem('${pDoc.id}')" class="text-red-500 text-[10px] font-bold underline">सामान हटाएं</button>
+                            <button onclick="saveEdit('${pDoc
